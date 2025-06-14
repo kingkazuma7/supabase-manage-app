@@ -1,8 +1,9 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
-export default function AttendancePage() {
+function AttendanceContent() {
   const searchParams = useSearchParams()
   const staffId = searchParams.get('staffId')
 
@@ -12,5 +13,13 @@ export default function AttendancePage() {
       <p>スタッフID: {staffId}</p>
       {/* ここに出退勤機能を実装 */}
     </div>
+  )
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense fallback={<div className="p-4">読み込み中...</div>}>
+      <AttendanceContent />
+    </Suspense>
   )
 } 

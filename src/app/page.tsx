@@ -21,14 +21,13 @@ export default function Home() {
     const fetchStaff = async () => {
       try {
         const supabase = createClient() // Supabaseクライアントを作成
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('staff')
           .select('*')
 
-        if (error) throw error
         setStaff(data || []) // スタッフデータを状態に保存
-      } catch (error) {
-        console.error('Error fetching staff:', error)
+      } catch (err) {
+        console.error('Error fetching staff:', err)
       } finally {
         setLoading(false)
       }
