@@ -102,6 +102,29 @@ export default function Home() {
     }
   }
 
+  const handleDeleteAccount = async (staffId: string) => {
+    if (!confirm('本当にこのアカウントを削除しますか？')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/auth/delete-account?staffId=${staffId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('アカウントの削除に失敗しました');
+      }
+
+      // 削除成功後、スタッフ一覧を更新
+      const supabase = createClient();
+      const { data } = await supabase.from('staff').select('*');
+      setStaff(data || []);
+    } catch (error) {
+      setError('アカウントの削除に失敗しました');
+    }
+  };
+
   if (loading) {
     return <div className="p-4">読み込み中...</div>
   }
@@ -119,13 +142,25 @@ export default function Home() {
       </div>
       <div className="grid grid-cols-2 gap-4">
         {staff.map((person) => (
-          <button
-            key={person.id}
-            onClick={() => handleStaffClick(person)}
-            className="p-4 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            {person.name}
-          </button>
+          <div key={person.id} className="flex flex-col gap-2">
+            {person.id}
+          </div>
+        ))}
+        {staff.map((person) => (
+          <div key={person.id} className="flex flex-col gap-2">
+            <button
+              onClick={() => handleStaffClick(person)}
+              className="p-4 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              {person.name}
+            </button>
+            <button
+              onClick={() => handleDeleteAccount(person.id)}
+              className="p-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+            >
+              削除
+            </button>
+          </div>
         ))}
       </div>
 
