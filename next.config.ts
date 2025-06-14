@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  webpack: (config) => {
+    // Supabaseの特定の警告を無視
+    config.ignoreWarnings = [
+      {
+        module: /@supabase\/realtime-js/,
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ];
+    return config;
+  },
 };
 
 export default nextConfig;

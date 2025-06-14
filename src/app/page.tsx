@@ -65,7 +65,7 @@ export default function Home() {
 
       // 認証成功時に出退勤ページへ遷移
       router.push(`/attendance?staffId=${selectedStaff.id}`)
-    } catch (err) {
+    } catch (error) {
       setError('パスワードが正しくありません')
     }
   }
