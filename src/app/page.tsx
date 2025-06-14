@@ -15,6 +15,9 @@ export default function Home() {
   const [password, setPassword] = useState('') // パスワードを状態に保存
   const [error, setError] = useState<string | null>(null) // エラーメッセージを状態に保存
   const [loading, setLoading] = useState(true) // 読み込み中のフラグ
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [newStaffName, setNewStaffName] = useState('')
+  const [newStaffPassword, setNewStaffPassword] = useState('')
   const router = useRouter() // ルーターを使用
 
   useEffect(() => {
@@ -69,13 +72,51 @@ export default function Home() {
     }
   }
 
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch('/api/auth/create-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newStaffName,
+          password: newStaffPassword,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('アカウントの作成に失敗しました')
+      }
+
+      // アカウント作成成功後、スタッフ一覧を更新
+      const supabase = createClient()
+      const { data } = await supabase.from('staff').select('*')
+      setStaff(data || [])
+      setIsCreatingAccount(false)
+      setNewStaffName('')
+      setNewStaffPassword('')
+    } catch (error) {
+      setError('アカウントの作成に失敗しました')
+    }
+  }
+
   if (loading) {
     return <div className="p-4">読み込み中...</div>
   }
 
   return (
     <main className="p-4">
-      <h1 className="text-2xl font-bold mb-4">スタッフ一覧</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">スタッフ一覧</h1>
+        <button
+          onClick={() => setIsCreatingAccount(true)}
+          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+        >
+          アカウント作成
+        </button>
+      </div>
       <div className="grid grid-cols-2 gap-4">
         {staff.map((person) => (
           <button
@@ -120,6 +161,51 @@ export default function Home() {
                   className="px-4 py-2 bg-blue-500 text-white rounded"
                 >
                   認証
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* アカウント作成モーダル */}
+      {isCreatingAccount && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-bold mb-4">アカウント作成</h2>
+            <form onSubmit={handleCreateAccount} className="space-y-4">
+              <input
+                type="text"
+                value={newStaffName}
+                onChange={(e) => setNewStaffName(e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="名前"
+                required
+              />
+              <input
+                type="password"
+                value={newStaffPassword}
+                onChange={(e) => setNewStaffPassword(e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="パスワード"
+                required
+              />
+              {error && (
+                <div className="text-red-500">{error}</div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingAccount(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-500 text-white rounded"
+                >
+                  作成
                 </button>
               </div>
             </form>
