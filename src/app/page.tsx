@@ -4,11 +4,21 @@ import { useState, useEffect } from 'react'
 import { createClient } from './utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
+/**
+ * スタッフ情報の型定義
+ * @typedef {Object} Staff
+ * @property {string} id - スタッフの一意のID
+ * @property {string} name - スタッフの名前
+ */
 type Staff = {
   id: string
   name: string
 }
 
+/**
+ * スタッフ管理アプリケーションのメインページコンポーネント
+ * @returns {JSX.Element} スタッフ一覧と各種操作モーダルを含むページ
+ */
 export default function Home() {
   const [staff, setStaff] = useState<Staff[]>([])
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null) // 選択されたスタッフを状態に保存
@@ -20,6 +30,12 @@ export default function Home() {
   const [newStaffPassword, setNewStaffPassword] = useState('')
   const router = useRouter() // ルーターを使用
 
+  /**
+   * スタッフ一覧を取得する
+   * @async
+   * @function fetchStaff
+   * @returns {Promise<void>}
+   */
   useEffect(() => {
     const fetchStaff = async () => {
       try {
@@ -39,12 +55,22 @@ export default function Home() {
     fetchStaff()
   }, [])
 
+  /**
+   * スタッフが選択された時の処理
+   * @param {Staff} staff - 選択されたスタッフ情報
+   */
   const handleStaffClick = (staff: Staff) => {
     setSelectedStaff(staff) // 選択されたスタッフを状態に保存
     setPassword('') // パスワードをクリア
     setError(null) // エラーメッセージをクリア
   }
 
+  /**
+   * パスワード認証の処理
+   * @async
+   * @param {React.FormEvent} e - フォームイベント
+   * @returns {Promise<void>}
+   */
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedStaff) return
@@ -72,6 +98,12 @@ export default function Home() {
     }
   }
 
+  /**
+   * 新規アカウント作成の処理
+   * @async
+   * @param {React.FormEvent} e - フォームイベント
+   * @returns {Promise<void>}
+   */
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
@@ -102,6 +134,12 @@ export default function Home() {
     }
   }
 
+  /**
+   * アカウント削除の処理
+   * @async
+   * @param {string} staffId - 削除対象のスタッフID
+   * @returns {Promise<void>}
+   */
   const handleDeleteAccount = async (staffId: string) => {
     if (!confirm('本当にこのアカウントを削除しますか？')) {
       return;
@@ -141,11 +179,6 @@ export default function Home() {
         </button>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        {staff.map((person) => (
-          <div key={person.id} className="flex flex-col gap-2">
-            {person.id}
-          </div>
-        ))}
         {staff.map((person) => (
           <div key={person.id} className="flex flex-col gap-2">
             <button
