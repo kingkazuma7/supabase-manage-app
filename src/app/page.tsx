@@ -175,8 +175,9 @@ export default function Home() {
         <button
           onClick={() => setIsCreatingAccount(true)}
           className={styles.buttonSuccess}
+          aria-label="アカウント作成"
         >
-          アカウント作成
+          ＋ アカウント作成
         </button>
       </div>
       <div className={styles.staffList}>
@@ -185,14 +186,16 @@ export default function Home() {
             <button
               onClick={() => handleStaffClick(person)}
               className={styles.buttonPrimary}
+              aria-label={`${person.name}を選択`}
             >
-              {person.name}
+              👤 {person.name}
             </button>
             <button
               onClick={() => handleDeleteAccount(person.id)}
               className={styles.buttonDanger}
+              aria-label={`${person.name}を削除`}
             >
-              削除
+              🗑️ 削除
             </button>
           </div>
         ))}
@@ -200,7 +203,7 @@ export default function Home() {
 
       {/* パスワード入力モーダル */}
       {selectedStaff && (
-        <div className={styles.modal}>
+        <div className={styles.modal} role="dialog" aria-modal="true">
           <div className={styles.modalContent}>
             <h2 className={styles.modalTitle}>
               {selectedStaff.name}さんのパスワードを入力
@@ -213,23 +216,29 @@ export default function Home() {
                 className={styles.input}
                 placeholder="パスワード"
                 required
+                autoComplete="current-password"
+                aria-label="パスワード"
               />
               {error && (
-                <div className={styles.error}>{error}</div>
+                <div className={styles.error} role="alert">
+                  {error}
+                </div>
               )}
               <div className={styles.buttonGroup}>
                 <button
                   type="button"
                   onClick={() => setSelectedStaff(null)}
                   className={styles.button}
+                  aria-label="キャンセル"
                 >
-                  キャンセル
+                  ✕ キャンセル
                 </button>
                 <button
                   type="submit"
                   className={styles.buttonPrimary}
+                  aria-label="認証"
                 >
-                  認証
+                  🔐 認証
                 </button>
               </div>
             </form>
@@ -239,7 +248,7 @@ export default function Home() {
 
       {/* アカウント作成モーダル */}
       {isCreatingAccount && (
-        <div className={styles.modal}>
+        <div className={styles.modal} role="dialog" aria-modal="true">
           <div className={styles.modalContent}>
             <h2 className={styles.modalTitle}>アカウント作成</h2>
             <form onSubmit={handleCreateAccount} className={styles.form}>
@@ -250,6 +259,8 @@ export default function Home() {
                 className={styles.input}
                 placeholder="名前"
                 required
+                autoComplete="name"
+                aria-label="名前"
               />
               <input
                 type="password"
@@ -258,23 +269,29 @@ export default function Home() {
                 className={styles.input}
                 placeholder="パスワード"
                 required
+                autoComplete="new-password"
+                aria-label="パスワード"
               />
               {error && (
-                <div className={styles.error}>{error}</div>
+                <div className={styles.error} role="alert">
+                  {error}
+                </div>
               )}
               <div className={styles.buttonGroup}>
                 <button
                   type="button"
                   onClick={() => setIsCreatingAccount(false)}
                   className={styles.button}
+                  aria-label="キャンセル"
                 >
-                  キャンセル
+                  ✕ キャンセル
                 </button>
                 <button
                   type="submit"
                   className={styles.buttonSuccess}
+                  aria-label="アカウント作成"
                 >
-                  作成
+                  ✓ 作成
                 </button>
               </div>
             </form>

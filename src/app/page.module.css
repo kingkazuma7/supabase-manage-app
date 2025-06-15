@@ -171,66 +171,76 @@ a.secondary {
   padding: 1rem;
   max-width: 768px;
   margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--gray-alpha-200);
 }
 
 .title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: bold;
 }
 
 .staffList {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
+  flex: 1;
 }
 
 .staffItem {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
+  align-items: center;
+  background: var(--gray-alpha-100);
+  padding: 1rem;
+  border-radius: 12px;
+  transition: transform 0.2s ease;
+}
+
+.staffItem:active {
+  transform: scale(0.98);
 }
 
 .button {
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   color: white;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
 }
 
 .buttonPrimary {
   composes: button;
   background-color: #3b82f6;
-}
-
-.buttonPrimary:hover {
-  background-color: #2563eb;
+  flex: 1;
 }
 
 .buttonDanger {
   composes: button;
   background-color: #ef4444;
-}
-
-.buttonDanger:hover {
-  background-color: #dc2626;
+  min-width: 100px;
 }
 
 .buttonSuccess {
   composes: button;
   background-color: #22c55e;
-}
-
-.buttonSuccess:hover {
-  background-color: #16a34a;
 }
 
 .modal {
@@ -240,40 +250,109 @@ a.secondary {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
 }
 
 .modalContent {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  width: 24rem;
+  background-color: var(--background);
+  padding: 2rem;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .modalTitle {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: bold;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.25rem;
+  padding: 1rem;
+  border: 2px solid var(--gray-alpha-200);
+  border-radius: 12px;
+  font-size: 1.1rem;
+  transition: border-color 0.2s ease;
+  min-height: 48px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
 }
 
 .error {
   color: #ef4444;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.5rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
 }
 
 .buttonGroup {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+/* タッチデバイス用のスタイル */
+@media (hover: none) and (pointer: coarse) {
+  .button {
+    min-height: 56px;
+    padding: 1rem 2rem;
+  }
+
+  .staffItem {
+    padding: 1.5rem;
+  }
+
+  .input {
+    min-height: 56px;
+    font-size: 1.2rem;
+  }
+
+  .modalContent {
+    padding: 2rem;
+  }
+
+  .buttonGroup {
+    gap: 1rem;
+  }
+
+  .buttonGroup button {
+    min-width: 120px;
+  }
+}
+
+/* タッチデバイスでのホバー効果を無効化 */
+@media (hover: none) and (pointer: coarse) {
+  .buttonPrimary:hover,
+  .buttonDanger:hover,
+  .buttonSuccess:hover {
+    background-color: inherit;
+  }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .staffItem {
+    background: var(--gray-alpha-100);
+  }
+
+  .input {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }
