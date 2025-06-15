@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from './utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import styles from './page.module.css'
 
 /**
  * スタッフ情報の型定義
@@ -164,32 +165,32 @@ export default function Home() {
   };
 
   if (loading) {
-    return <div className="p-4">読み込み中...</div>
+    return <div className={styles.container}>読み込み中...</div>
   }
 
   return (
-    <main className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">スタッフ一覧</h1>
+    <main className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>スタッフ一覧</h1>
         <button
           onClick={() => setIsCreatingAccount(true)}
-          className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+          className={styles.buttonSuccess}
         >
           アカウント作成
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className={styles.staffList}>
         {staff.map((person) => (
-          <div key={person.id} className="flex flex-col gap-2">
+          <div key={person.id} className={styles.staffItem}>
             <button
               onClick={() => handleStaffClick(person)}
-              className="p-4 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className={styles.buttonPrimary}
             >
               {person.name}
             </button>
             <button
               onClick={() => handleDeleteAccount(person.id)}
-              className="p-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+              className={styles.buttonDanger}
             >
               削除
             </button>
@@ -199,34 +200,34 @@ export default function Home() {
 
       {/* パスワード入力モーダル */}
       {selectedStaff && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>
               {selectedStaff.name}さんのパスワードを入力
             </h2>
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <form onSubmit={handlePasswordSubmit} className={styles.form}>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-2 border rounded"
+                className={styles.input}
                 placeholder="パスワード"
                 required
               />
               {error && (
-                <div className="text-red-500">{error}</div>
+                <div className={styles.error}>{error}</div>
               )}
-              <div className="flex justify-end space-x-2">
+              <div className={styles.buttonGroup}>
                 <button
                   type="button"
                   onClick={() => setSelectedStaff(null)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                  className={styles.button}
                 >
                   キャンセル
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded"
+                  className={styles.buttonPrimary}
                 >
                   認証
                 </button>
@@ -238,15 +239,15 @@ export default function Home() {
 
       {/* アカウント作成モーダル */}
       {isCreatingAccount && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">アカウント作成</h2>
-            <form onSubmit={handleCreateAccount} className="space-y-4">
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>アカウント作成</h2>
+            <form onSubmit={handleCreateAccount} className={styles.form}>
               <input
                 type="text"
                 value={newStaffName}
                 onChange={(e) => setNewStaffName(e.target.value)}
-                className="w-full p-2 border rounded"
+                className={styles.input}
                 placeholder="名前"
                 required
               />
@@ -254,24 +255,24 @@ export default function Home() {
                 type="password"
                 value={newStaffPassword}
                 onChange={(e) => setNewStaffPassword(e.target.value)}
-                className="w-full p-2 border rounded"
+                className={styles.input}
                 placeholder="パスワード"
                 required
               />
               {error && (
-                <div className="text-red-500">{error}</div>
+                <div className={styles.error}>{error}</div>
               )}
-              <div className="flex justify-end space-x-2">
+              <div className={styles.buttonGroup}>
                 <button
                   type="button"
                   onClick={() => setIsCreatingAccount(false)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                  className={styles.button}
                 >
                   キャンセル
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-500 text-white rounded"
+                  className={styles.buttonSuccess}
                 >
                   作成
                 </button>
