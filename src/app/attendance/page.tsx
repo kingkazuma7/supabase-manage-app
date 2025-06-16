@@ -156,12 +156,12 @@ function AttendanceContent() {
           .eq('id', staffId)
           .single()
 
-        // 勤怠データ取得（月間）
+        // 勤怠データ取得（月間 + 前月の日付跨ぎ記録）
         const { data: attendanceData } = await supabase
           .from('attendance')
           .select('*')
           .eq('staff_id', staffId)
-          .gte('clock_in', firstDayOfMonth.toISOString())
+          .or(`clock_in.gte.${firstDayOfMonth.toISOString()},and(clock_in.lt.${firstDayOfMonth.toISOString()},clock_out.gte.${firstDayOfMonth.toISOString()})`)
           .lte('clock_in', lastDayOfMonth.toISOString())
           .order('clock_in', { ascending: true })
 
@@ -184,7 +184,7 @@ function AttendanceContent() {
               hour12: false
             }).slice(0, 5);
 
-            // 日付跨ぎチェック
+            // 日付跨ぎチェック（月をまたぐ場合も含む）
             const isCrossDay = record.clock_out 
               ? new Date(record.clock_in).toDateString() !== new Date(record.clock_out).toDateString()
               : false;
@@ -218,7 +218,7 @@ function AttendanceContent() {
           
           setRecords(formattedRecords);
           
-          // 有効な勤務記録を抽出
+          // 有効な勤務記録を抽出（月をまたぐ記録も含む）
           const validRecords = attendanceData.filter(record => 
             record.clock_in && record.clock_out
           )
