@@ -310,6 +310,17 @@
   color: var(--text-secondary);
 }
 
+.noStatus {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--background-secondary);
+  text-align: center;
+  margin: 0;
+}
+
 /* タッチデバイス用のスタイル */
 @media (hover: none) and (pointer: coarse) {
   .container {

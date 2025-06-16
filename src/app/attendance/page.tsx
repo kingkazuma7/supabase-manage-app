@@ -52,11 +52,13 @@ type WorkTime = {
  * @property {boolean} isWorking - 勤務中かどうか
  * @property {string | null} lastClockIn - 最終出勤時間
  * @property {string | null} lastClockOut - 最終退勤時間
+ * @property {'勤務中' | '退勤済み' | null} status - 勤怠ステータス
  */
 type AttendanceStatus = {
   isWorking: boolean
   lastClockIn: string | null
   lastClockOut: string | null
+  status: '勤務中' | '退勤済み' | null
 }
 
 /**
@@ -128,7 +130,8 @@ function AttendanceContent() {
   const [status, setStatus] = useState<AttendanceStatus>({
     isWorking: false,
     lastClockIn: null,
-    lastClockOut: null
+    lastClockOut: null,
+    status: null
   })
   const [error, setError] = useState<string | null>(null)
   const [isTodayCompleted, setIsTodayCompleted] = useState(false)
@@ -204,7 +207,10 @@ function AttendanceContent() {
           setStatus({
             isWorking: lastRecord && !lastRecord.clock_out,
             lastClockIn: lastRecord?.clock_in || null,
-            lastClockOut: lastRecord?.clock_out || null
+            lastClockOut: lastRecord?.clock_out || null,
+            status: lastRecord 
+              ? (lastRecord.clock_out ? '退勤済み' : '勤務中')
+              : null
           })
           
           // 整合性チェック
@@ -312,7 +318,8 @@ function AttendanceContent() {
         setStatus({
           isWorking: updatedRecords.some(r => !r.clock_out),
           lastClockIn: updatedRecords[0]?.clock_in || null,
-          lastClockOut: updatedRecords.find(r => r.clock_out)?.clock_out || null
+          lastClockOut: updatedRecords.find(r => r.clock_out)?.clock_out || null,
+          status: updatedRecords.some(r => !r.clock_out) ? '勤務中' : '退勤済み'
         })
       }
     } catch (err) {
@@ -378,9 +385,13 @@ function AttendanceContent() {
 
       <div className={styles.status}>
         <h2>現在のステータス</h2>
-        <p className={status.isWorking ? styles.working : styles.notWorking}>
-          {status.isWorking ? '勤務中' : '退勤済み'}
-        </p>
+        {status.status ? (
+          <p className={styles[status.status === '勤務中' ? 'working' : 'notWorking']}>
+            {status.status}
+          </p>
+        ) : (
+          <p className={styles.noStatus}>-</p>
+        )}
       </div>
 
       {workTime && (
@@ -413,14 +424,14 @@ function AttendanceContent() {
         <button
           className={styles.buttonPrimary}
           onClick={() => handleAttendance('出勤')}
-          disabled={status.isWorking || isTodayCompleted}
+          disabled={status.status === '勤務中' || isTodayCompleted}
         >
           出勤
         </button>
         <button
           className={styles.buttonDanger}
           onClick={() => handleAttendance('退勤')}
-          disabled={!status.isWorking || isTodayCompleted}
+          disabled={status.status === '退勤済み' || isTodayCompleted}
         >
           退勤
         </button>
