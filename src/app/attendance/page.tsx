@@ -5,7 +5,7 @@ import { Suspense, useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import styles from './attendance.module.css'
 import Link from 'next/link'
-import { insertTestData, deleteTestData } from './testData'
+import { insertAndValidateTestData, deleteTestData } from './testData'
 
 /**
  * スタッフ情報の型定義
@@ -490,7 +490,7 @@ function AttendanceContent() {
         <div className={styles.testButtons}>
           <button 
             className={styles.buttonTest}
-            onClick={() => insertTestData(staff.id)}
+            onClick={() => insertAndValidateTestData(staff.id)}
           >
             テストデータ挿入
           </button>
