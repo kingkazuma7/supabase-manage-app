@@ -1,11 +1,7 @@
 .container {
-  padding: 1rem;
-  max-width: 768px;
+  max-width: 800px;
   margin: 0 auto;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  padding: 2rem;
 }
 
 .header {
@@ -13,44 +9,184 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
-  padding: 1rem 0;
+  padding: 1rem;
+  background: var(--background);
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.header a {
+  color: var(--primary);
+  text-decoration: none;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  background: var(--primary-alpha-100);
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.status {
+  background: var(--background);
+  padding: 2rem;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.status h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.working {
+  color: var(--success);
+  font-weight: 600;
+  font-size: 1.8rem;
+  padding: 1rem 2rem;
+  background: var(--success-alpha-100);
+  border-radius: 0.75rem;
+  display: inline-block;
+}
+
+.notWorking {
+  color: var(--gray-alpha-700);
+  font-weight: 600;
+  font-size: 1.8rem;
+  padding: 1rem 2rem;
+  background: var(--gray-alpha-100);
+  border-radius: 0.75rem;
+  display: inline-block;
+}
+
+.workTime {
+  background: var(--background);
+  padding: 2rem;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.workTime h2 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: var(--foreground);
+  font-weight: 600;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-alpha-200);
+}
+
+.workTime p {
+  margin: 1rem 0;
+  color: var(--gray-alpha-700);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.2rem;
+}
+
+.workTime p:first-of-type {
+  font-weight: 600;
+  color: var(--foreground);
+  font-size: 1.4rem;
+  margin-bottom: 1.5rem;
+}
+
+.workTime p:nth-of-type(2) {
+  font-size: 1.8rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin: 1.5rem 0;
+}
+
+.records {
+  background: var(--background);
+  padding: 2rem;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.records h2 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: var(--foreground);
+  font-weight: 600;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-alpha-200);
+}
+
+.record {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
   border-bottom: 1px solid var(--gray-alpha-200);
+  transition: background-color 0.2s;
+  font-size: 1.2rem;
 }
 
-.title {
-  font-size: 1.75rem;
-  font-weight: 500;
+.record:hover {
+  background-color: var(--gray-alpha-50);
+}
+
+.record:last-child {
+  border-bottom: none;
+}
+
+.record span:first-child {
+  font-family: var(--font-geist-mono);
   color: var(--foreground);
 }
 
-.subtitle {
-  font-size: 1.25rem;
+.record span:last-child {
+  padding: 0.5rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 1.1rem;
   font-weight: 500;
-  color: var(--foreground);
-  margin-bottom: 1rem;
+}
+
+.clockIn {
+  background-color: var(--primary-alpha-100);
+  color: var(--primary);
+}
+
+.clockOut {
+  background-color: var(--danger-alpha-100);
+  color: var(--danger);
 }
 
 .actionButtons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  padding: 1rem;
+  gap: 1.5rem;
+  padding: 2rem;
   background: var(--gray-alpha-100);
-  border-radius: 12px;
+  border-radius: 1rem;
+  margin-top: 2rem;
 }
 
 .button {
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 1.5rem;
+  border-radius: 1rem;
   border: none;
   color: white;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
+  min-height: 80px;
   transition: transform 0.2s ease;
+  font-weight: 600;
 }
 
 .button:active {
@@ -67,43 +203,78 @@
   background-color: #ef4444;
 }
 
-.buttonSecondary {
-  composes: button;
-  background-color: #6b7280;
+.button:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
 }
 
-.recordList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--gray-alpha-100);
-  border-radius: 12px;
-}
-
-.recordItem {
+.error {
+  background: var(--danger-alpha-100);
+  color: var(--danger);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
-  background: var(--background);
-  border: 1px solid var(--gray-alpha-200);
-  border-radius: 6px;
+  font-size: 1.2rem;
 }
 
-.recordTime {
-  font-family: var(--font-geist-mono);
-  font-size: 1.1rem;
-  color: var(--foreground);
+.fixButton {
+  background: var(--danger);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 500;
 }
 
-.recordType {
-  color: var(--foreground);
-  font-size: 0.9rem;
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  color: var(--gray-alpha-700);
+  font-size: 1.4rem;
+}
+
+.testButtons {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: #f3f4f6;
+  border-radius: 1rem;
+  text-align: center;
+}
+
+.buttonTest {
+  background-color: #6b7280;
+  color: white;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  margin: 0 1rem;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.buttonTest:hover {
+  background-color: #4b5563;
+}
+
+.buttonTest:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
 }
 
 /* タッチデバイス用のスタイル */
 @media (hover: none) and (pointer: coarse) {
+  .container {
+    padding: 1rem;
+  }
+
   .button {
     min-height: 64px;
     font-size: 1.2rem;
@@ -114,93 +285,30 @@
     padding: 1.5rem;
   }
 
-  .recordItem {
-    padding: 1rem;
+  .record {
+    padding: 1.5rem;
   }
-}
 
-.error {
-  color: #dc2626;
-  background-color: #fee2e2;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-  text-align: center;
-}
+  .buttonTest {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    margin: 0.5rem;
+  }
 
-.loading {
-  text-align: center;
-  padding: 2rem;
-  color: #6b7280;
-  font-size: 1.1rem;
-}
+  .status, .workTime, .records {
+    padding: 2rem;
+  }
 
-.backButton {
-  padding: 0.5rem 1rem;
-  background-color: #f3f4f6;
-  color: #374151;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
+  .working, .notWorking {
+    font-size: 1.4rem;
+    padding: 0.75rem 1.5rem;
+  }
 
-.backButton:hover {
-  background-color: #e5e7eb;
-}
+  .workTime p {
+    font-size: 1.1rem;
+  }
 
-.status {
-  background-color: #f3f4f6;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  margin: 1rem 0;
-  text-align: center;
-}
-
-.working {
-  color: #059669;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0.5rem 0;
-}
-
-.notWorking {
-  color: #6b7280;
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin: 0.5rem 0;
-}
-
-.lastRecord {
-  color: #4b5563;
-  font-size: 1.1rem;
-  margin: 0.5rem 0;
-}
-
-.testButtons {
-  margin-top: 2rem;
-  padding: 1rem;
-  background-color: #f3f4f6;
-  border-radius: 0.5rem;
-  text-align: center;
-}
-
-.buttonTest {
-  background-color: #6b7280;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  margin: 0 0.5rem;
-  font-size: 0.875rem;
-}
-
-.buttonTest:hover {
-  background-color: #4b5563;
-}
-
-.buttonTest:disabled {
-  background-color: #d1d5db;
-  cursor: not-allowed;
+  .workTime p:nth-of-type(2) {
+    font-size: 1.4rem;
+  }
 } 
