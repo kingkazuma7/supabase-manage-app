@@ -55,17 +55,75 @@ type AttendanceStatus = {
 
 /**
  * 勤務時間を計算する関数
- * @param {Array<{clock_in: string, clock_out: string}>} records - 勤務記録の配列
+ * @param {string} clockIn - 出勤時間
+ * @param {string} clockOut - 退勤時間
+ * @returns {Array<{date: string, start: string, end: string, minutes: number}>} 日付ごとの勤務時間
+ */
+const calculateWorkTimeByDate = (clockIn: string, clockOut: string) => {
+  const start = new Date(clockIn)
+  const end = new Date(clockOut)
+  const results = []
+
+  // 日付が同じ場合
+  if (start.toDateString() === end.toDateString()) {
+    const minutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60))
+    results.push({
+      date: start.toISOString().split('T')[0],
+      start: start.toISOString(),
+      end: end.toISOString(),
+      minutes
+    })
+  } else {
+    // 日付を跨ぐ場合
+    const midnight = new Date(start)
+    midnight.setHours(24, 0, 0, 0)
+    
+    // 1日目の勤務時間
+    const firstDayMinutes = Math.floor((midnight.getTime() - start.getTime()) / (1000 * 60))
+    results.push({
+      date: start.toISOString().split('T')[0],
+      start: start.toISOString(),
+      end: midnight.toISOString(),
+      minutes: firstDayMinutes
+    })
+
+    // 2日目以降の勤務時間
+    const nextDay = new Date(midnight)
+    nextDay.setDate(nextDay.getDate() + 1)
+    const lastDayMinutes = Math.floor((end.getTime() - nextDay.getTime()) / (1000 * 60))
+    results.push({
+      date: nextDay.toISOString().split('T')[0],
+      start: nextDay.toISOString(),
+      end: end.toISOString(),
+      minutes: lastDayMinutes
+    })
+  }
+
+  return results
+}
+
+/**
+ * 月間の勤務時間を計算する関数
+ * @param {Array<{clock_in: string, clock_out: string}>} records - 勤務記録
  * @returns {string} 合計勤務時間（HH:MM形式）
  */
-const calculateTotalWorkTime = (records: { clock_in: string; clock_out: string }[]) => {
+const calculateMonthlyWorkTime = (records: { clock_in: string; clock_out: string }[]) => {
   let totalMinutes = 0
+  const today = new Date()
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
 
   records.forEach(record => {
     const clockIn = new Date(record.clock_in)
     const clockOut = new Date(record.clock_out)
-    const diffMinutes = Math.floor((clockOut.getTime() - clockIn.getTime()) / (1000 * 60))
-    totalMinutes += diffMinutes
+
+    // 今月の記録のみを計算
+    if (clockIn >= firstDayOfMonth && clockIn <= lastDayOfMonth) {
+      const workTimes = calculateWorkTimeByDate(record.clock_in, record.clock_out)
+      workTimes.forEach(workTime => {
+        totalMinutes += workTime.minutes
+      })
+    }
   })
 
   const hours = Math.floor(totalMinutes / 60)
@@ -130,7 +188,7 @@ function AttendanceContent() {
           // 勤務時間の計算
           const completedRecords = recordsData.filter(record => record.clock_out)
           if (completedRecords.length > 0) {
-            const totalWorkTime = calculateTotalWorkTime(completedRecords)
+            const totalWorkTime = calculateMonthlyWorkTime(completedRecords)
             setWorkTime({
               total: totalWorkTime,
               name: staffData.name
@@ -176,28 +234,37 @@ function AttendanceContent() {
       
       const supabase = createClient()
       
-      // 本日の最新の記録を取得
-      const { data: latestRecords, error: fetchError } = await supabase
+      // 本日の記録を取得
+      const today = new Date().toISOString().split('T')[0]
+      const { data: todayRecords, error: fetchError } = await supabase
         .from('attendance')
         .select('*')
         .eq('staff_id', staff.id)
-        .order('clock_in', { ascending: false })
-        .limit(1)
+        .gte('clock_in', today)
+        .order('clock_in', { ascending: true })
 
       if (fetchError) {
-        console.error('最新の記録取得に失敗:', fetchError)
-        throw new Error('最新の記録取得に失敗しました')
-      }
-      
-      const latestRecord = latestRecords?.[0]
-
-      // 出勤・退勤の順序チェック
-      if (type === '出勤' && latestRecord && !latestRecord.clock_out) {
-        throw new Error('前回の出勤が退勤されていません')
+        console.error('記録の取得に失敗:', fetchError)
+        throw new Error('記録の取得に失敗しました')
       }
 
-      if (type === '退勤' && (!latestRecord || latestRecord.clock_out)) {
-        throw new Error('出勤記録が見つかりません')
+      // 記録の整合性チェック
+      if (todayRecords) {
+        const hasUnfinishedRecord = todayRecords.some(record => !record.clock_out)
+        const hasFinishedRecord = todayRecords.some(record => record.clock_out)
+
+        if (type === '出勤') {
+          if (hasUnfinishedRecord) {
+            throw new Error('既に出勤済みです')
+          }
+          if (hasFinishedRecord) {
+            throw new Error('本日は既に退勤済みです')
+          }
+        } else if (type === '退勤') {
+          if (!hasUnfinishedRecord) {
+            throw new Error('出勤記録がありません')
+          }
+        }
       }
 
       if (type === '出勤') {
@@ -224,15 +291,31 @@ function AttendanceContent() {
           // 出勤成功時のアラート
           alert(`${time}に出勤しました`)
       } else if (type === '退勤') {
+        // 最新の未退勤記録を取得
+        const { data: latestRecord, error: fetchLatestError } = await supabase
+          .from('attendance')
+          .select('*')
+          .eq('staff_id', staff.id)
+          .is('clock_out', null)
+          .order('clock_in', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (fetchLatestError) {
+          console.error('最新の記録取得に失敗:', fetchLatestError)
+          throw new Error('最新の記録取得に失敗しました')
+        }
+
+        if (!latestRecord) {
+          throw new Error('退勤対象の出勤記録が見つかりません')
+        }
+
         const { error } = await supabase
           .from('attendance')
           .update({
             clock_out: now.toISOString()
           })
-          .eq('staff_id', staff.id)
-          .is('clock_out', null)
-          .order('clock_in', { ascending: false })
-          .limit(1)
+          .eq('id', latestRecord.id)
           .select()
           
           if (error) {
@@ -243,34 +326,56 @@ function AttendanceContent() {
           // ステータスの更新
           setStatus({
             isWorking: false,
-            lastClockIn: latestRecord?.clock_in || null,
+            lastClockIn: latestRecord.clock_in,
             lastClockOut: now.toISOString()
           })
 
-          // 退勤成功時のアラート
-          alert(`${time}に退勤しました`)
+          // 勤務時間の計算
+          const workTimes = calculateWorkTimeByDate(latestRecord.clock_in, now.toISOString())
+          const totalMinutes = workTimes.reduce((sum, workTime) => sum + workTime.minutes, 0)
+          const hours = Math.floor(totalMinutes / 60)
+          const minutes = totalMinutes % 60
+          const workTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
 
-          // 本日の全記録を取得して勤務時間を再計算
-          const today = new Date().toISOString().split('T')[0]
-          const { data: todayRecords } = await supabase
+          // 退勤成功時のアラート
+          alert(`${time}に退勤しました\n勤務時間: ${workTimeStr}`)
+
+          // 月間勤務時間の計算
+          const { data: monthlyRecords } = await supabase
             .from('attendance')
             .select('*')
             .eq('staff_id', staff.id)
-            .gte('clock_in', today)
+            .not('clock_out', 'is', null)
             .order('clock_in', { ascending: true })
 
-          if (todayRecords) {
-            const completedRecords = todayRecords.filter(record => record.clock_out)
-            const totalWorkTime = calculateTotalWorkTime(completedRecords)
+          if (monthlyRecords) {
+            const monthlyWorkTime = calculateMonthlyWorkTime(monthlyRecords)
             setWorkTime({
-              total: totalWorkTime,
+              total: monthlyWorkTime,
               name: staff.name
             })
-            alert(`${staff.name}さんの本日の合計勤務時間は${totalWorkTime}です`)
           }
       }
 
-      setRecords(prev => [...prev, { time, type }])
+      // 記録の更新
+      const { data: updatedRecords } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('staff_id', staff.id)
+        .gte('clock_in', today)
+        .order('clock_in', { ascending: true })
+
+      if (updatedRecords) {
+        const formattedRecords = updatedRecords.map(record => ({
+          time: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }),
+          type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
+        }))
+        setRecords(formattedRecords)
+      }
     } catch (error) {
       setError(error instanceof Error ? error.message : '予期せぬエラーが発生しました')
       console.error('勤怠管理レコードの保存に失敗しました', error)
