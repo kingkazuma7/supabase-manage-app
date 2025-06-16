@@ -325,6 +325,17 @@
   margin: 0;
 }
 
+.crossDayBadge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
 /* タッチデバイス用のスタイル */
 @media (hover: none) and (pointer: coarse) {
   .container {

@@ -24,11 +24,13 @@ type Staff = {
  * @property {string} date - 記録日付（YYYY/MM/DD形式）
  * @property {string} clockIn - 出勤時間（HH:mm形式）
  * @property {string | null} clockOut - 退勤時間（HH:mm形式）
+ * @property {boolean} isCrossDay - 日付跨ぎフラグ
  */
 type AttendanceRecord = {
   date: string;
   clockIn: string;
   clockOut: string | null;
+  isCrossDay: boolean;
 }
 
 /**
@@ -182,6 +184,11 @@ function AttendanceContent() {
               hour12: false
             }).slice(0, 5);
 
+            // 日付跨ぎチェック
+            const isCrossDay = record.clock_out 
+              ? new Date(record.clock_in).toDateString() !== new Date(record.clock_out).toDateString()
+              : false;
+
             const existingRecord = acc.find(r => r.date === date);
             if (existingRecord) {
               if (record.clock_out) {
@@ -190,6 +197,7 @@ function AttendanceContent() {
                   minute: '2-digit',
                   hour12: false
                 }).slice(0, 5);
+                existingRecord.isCrossDay = isCrossDay;
               }
             } else {
               acc.push({
@@ -201,7 +209,8 @@ function AttendanceContent() {
                       minute: '2-digit',
                       hour12: false
                     }).slice(0, 5)
-                  : null
+                  : null,
+                isCrossDay
               });
             }
             return acc;
@@ -363,7 +372,10 @@ function AttendanceContent() {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false
-          }).slice(0, 5) : null
+          }).slice(0, 5) : null,
+          isCrossDay: record.clock_out 
+            ? new Date(record.clock_in).toDateString() !== new Date(record.clock_out).toDateString()
+            : false
         })))
         
         setStatus({
@@ -463,6 +475,9 @@ function AttendanceContent() {
               <span className={styles.recordDate}>{record.date}</span>
               <span className={styles.recordTime}>
                 {record.clockIn} - {record.clockOut || '退勤未記録'}
+                {record.isCrossDay && (
+                  <span className={styles.crossDayBadge}>日付跨ぎ</span>
+                )}
               </span>
             </div>
           ))
