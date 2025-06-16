@@ -471,25 +471,42 @@ function AttendanceContent() {
       <div className={styles.records}>
         <h2>{new Date().getMonth() + 1}月の記録</h2>
         {records.length > 0 ? (
-          records.map((record, i) => (
-            <div key={i} className={styles.record}>
-              <span className={styles.recordDate}>{record.date}</span>
-              <span className={styles.recordTime}>
-                {record.clockIn} - {record.clockOut || '退勤未記録'}
-                {record.isCrossDay && (
-                  <span className={styles.crossDayBadge}>日付跨ぎ</span>
-                )}
-                {record.clockOut && record.originalClockIn && record.originalClockOut && (
-                  <span className={styles.workTime}>
-                    勤務時間: {calculateWorkTime(
-                      record.originalClockIn,
-                      record.originalClockOut
-                    )}
-                  </span>
-                )}
-              </span>
+          <>
+            {records.map((record, i) => (
+              <div key={i} className={styles.record}>
+                <span className={styles.recordDate}>{record.date}</span>
+                <span className={styles.recordTime}>
+                  {record.clockIn} - {record.clockOut || '退勤未記録'}
+                  {record.isCrossDay && (
+                    <span className={styles.crossDayBadge}>日付跨ぎ</span>
+                  )}
+                  {record.clockOut && record.originalClockIn && record.originalClockOut && (
+                    <span className={styles.workTime}>
+                      勤務時間: {calculateWorkTime(
+                        record.originalClockIn,
+                        record.originalClockOut
+                      )}
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+            <div className={styles.monthlyTotal}>
+              当月合計: {(() => {
+                const totalMinutes = records.reduce((total, record) => {
+                  if (record.clockOut && record.originalClockIn && record.originalClockOut) {
+                    const time = calculateWorkTime(record.originalClockIn, record.originalClockOut)
+                    const [hours, minutes] = time.split(':').map(Number)
+                    return total + hours * 60 + minutes
+                  }
+                  return total
+                }, 0)
+                const hours = Math.floor(totalMinutes / 60)
+                const minutes = totalMinutes % 60
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+              })()}
             </div>
-          ))
+          </>
         ) : (
           <p>記録がありません</p>
         )}
