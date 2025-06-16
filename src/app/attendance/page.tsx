@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { createClient } from '../utils/supabase/client'
 import styles from './attendance.module.css'
 import Link from 'next/link'
@@ -25,12 +25,16 @@ type Staff = {
  * @property {string} clockIn - 出勤時間（HH:mm形式）
  * @property {string | null} clockOut - 退勤時間（HH:mm形式）
  * @property {boolean} isCrossDay - 日付跨ぎフラグ
+ * @property {string} originalClockIn - 出勤時間（ISO形式、計算用）
+ * @property {string | null} originalClockOut - 退勤時間（ISO形式、計算用）
  */
 type AttendanceRecord = {
   date: string;
   clockIn: string;
   clockOut: string | null;
   isCrossDay: boolean;
+  originalClockIn: string; // ISO形式の出勤時間（正確な計算用）
+  originalClockOut: string | null; // ISO形式の退勤時間（正確な計算用）
 }
 
 /**
@@ -52,8 +56,8 @@ type WorkTime = {
  * 勤怠ステータスの型定義
  * @typedef {Object} AttendanceStatus
  * @property {boolean} isWorking - 勤務中かどうか
- * @property {string | null} lastClockIn - 最終出勤時間
- * @property {string | null} lastClockOut - 最終退勤時間
+ * @property {string | null} lastClockIn - 最終出勤時間（ISO形式）
+ * @property {string | null} lastClockOut - 最終退勤時間（ISO形式）
  * @property {'勤務中' | '退勤済み' | null} status - 勤怠ステータス
  */
 type AttendanceStatus = {
@@ -63,61 +67,100 @@ type AttendanceStatus = {
   status: '勤務中' | '退勤済み' | null
 }
 
+// 追加：月次合計の型定義
+type MonthlyTotal = {
+    hours: number;
+    minutes: number;
+};
+
 /**
- * 勤務時間を計算する
+ * 勤務時間の合計を計算する（出勤から退勤までの純粋な総時間）
  * @param {string} clockIn - 出勤時間（ISO形式）
  * @param {string} clockOut - 退勤時間（ISO形式）
  * @returns {string} 勤務時間（HH:mm形式）
  */
-const calculateWorkTime = (clockIn: string, clockOut: string) => {
-  const start = new Date(clockIn)
-  const end = new Date(clockOut)
+const calculateWorkTime = (clockIn: string, clockOut: string): string => {
+  const start = new Date(clockIn);
+  const end = new Date(clockOut);
   
-  // 日付跨ぎの場合
-  if (start.toDateString() !== end.toDateString()) {
-    // 出勤日の24時までの時間
-    const midnight = new Date(start)
-    midnight.setHours(24, 0, 0, 0)
-    const day1Minutes = Math.floor((midnight.getTime() - start.getTime()) / (1000 * 60))
-    
-    // 退勤日の0時からの時間
-    const day2Start = new Date(end)
-    day2Start.setHours(0, 0, 0, 0)
-    const day2Minutes = Math.floor((end.getTime() - day2Start.getTime()) / (1000 * 60))
-    
-    // 合計時間（24時間を超える場合も正しく計算）
-    const totalMinutes = day1Minutes + day2Minutes
-    const hours = Math.floor(totalMinutes / 60)
-    const mins = totalMinutes % 60
-    
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+  const diffMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+  
+  if (diffMinutes < 0) {
+    // 退勤時間が出勤時間より前の場合など、不正な場合は0を返す
+    return '00:00';
   }
+
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
   
-  // 同じ日の場合は通常計算
-  const minutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60))
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
+
+
+/**
+ * 指定された期間 (periodStart - periodEnd) 内の勤務時間を計算する
+ * 月をまたぐ勤務でも、指定期間内の時間のみを正確に集計します。
+ * @param {string} clockIn - 出勤時間（ISO形式）
+ * @param {string} clockOut - 退勤時間（ISO形式）
+ * @param {Date} periodStart - 期間開始日 (Dateオブジェクト)
+ * @param {Date} periodEnd - 期間終了日 (Dateオブジェクト)
+ * @returns {string} 勤務時間（HH:mm形式）
+ */
+const calculateWorkTimeForPeriod = (clockIn: string, clockOut: string, periodStart: Date, periodEnd: Date): string => {
+  const start = new Date(clockIn);
+  const end = new Date(clockOut);
   
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
-}
+  // 勤務開始と期間開始の遅い方
+  const effectiveStart = new Date(Math.max(start.getTime(), periodStart.getTime()));
+  // 勤務終了と期間終了の早い方
+  const effectiveEnd = new Date(Math.min(end.getTime(), periodEnd.getTime()));
+  
+  // 期間内に勤務がない場合や、期間が逆転している場合は00:00を返す
+  if (effectiveStart.getTime() >= effectiveEnd.getTime()) {
+      return '00:00';
+  }
+
+  const diffMinutes = Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
+  
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
+  
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
+
+/**
+ * 勤務時間の合計分数を取得するヘルパー関数
+ * @param {string} timeString - HH:mm形式の文字列
+ * @returns {number} 合計分数
+ */
+const getMinutesFromHHMM = (timeString: string): number => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return hours * 60 + minutes;
+};
+
 
 /**
  * 勤怠記録の整合性をチェックする
+ * 連続した出勤打刻、退勤打刻なしの状態で退勤打刻などを検出します。
  * @param {Array<{clock_in: string; clock_out: string | null}>} records - 勤怠記録の配列
  * @returns {boolean} 整合性が取れている場合はtrue
  */
 const validateRecords = (records: { clock_in: string; clock_out: string | null }[]) => {
-  if (records.length === 0) return true
+  if (records.length === 0) return true;
   
-  // 出勤→退勤の順序チェック
-  let lastType: 'in' | 'out' | null = null
-  for (const record of records) {
-    if (!record.clock_out && lastType === 'in') return false
-    lastType = record.clock_out ? 'out' : 'in'
+  let hasUnclockedOut = false; // 未退勤の記録があるか
+  for (let i = 0; i < records.length; i++) {
+    const record = records[i];
+    if (!record.clock_out) {
+      if (hasUnclockedOut) {
+        // 既に未退勤の記録があるのに、また未退勤の記録があった場合（不正）
+        return false;
+      }
+      hasUnclockedOut = true;
+    }
   }
-  
-  return true
-}
+  return true;
+};
 
 /**
  * 勤怠管理のメインコンポーネント
@@ -128,7 +171,7 @@ function AttendanceContent() {
   const staffId = searchParams.get('staffId')
   const [staff, setStaff] = useState<Staff | null>(null)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
-  const [workTime, setWorkTime] = useState<WorkTime | null>(null)
+  const [workTime, setWorkTime] = useState<WorkTime | null>(null) // 本日の勤務時間
   const [status, setStatus] = useState<AttendanceStatus>({
     isWorking: false,
     lastClockIn: null,
@@ -137,295 +180,274 @@ function AttendanceContent() {
   })
   const [error, setError] = useState<string | null>(null)
   const [isTodayCompleted, setIsTodayCompleted] = useState(false)
+  const [monthlyTotal, setMonthlyTotal] = useState<MonthlyTotal | null>(null); // 月次合計勤務時間
 
-  // データ取得
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!staffId) return
-      
-      try {
-        const supabase = createClient()
-        const now = new Date()
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        
-        // スタッフデータ取得
-        const { data: staffData } = await supabase
-          .from('staff')
-          .select('*')
-          .eq('id', staffId)
-          .single()
-
-        // 勤怠データ取得（月間 + 前月の日付跨ぎ記録）
-        const { data: attendanceData } = await supabase
-          .from('attendance')
-          .select('*')
-          .eq('staff_id', staffId)
-          .or(`clock_in.gte.${firstDayOfMonth.toISOString()},and(clock_in.lt.${firstDayOfMonth.toISOString()},clock_out.gte.${firstDayOfMonth.toISOString()})`)
-          .lte('clock_in', lastDayOfMonth.toISOString())
-          .order('clock_in', { ascending: true })
-
-        setStaff(staffData)
-        
-        if (attendanceData) {
-          // 本日の出退勤完了チェック
-          const today = new Date().toISOString().split('T')[0]
-          const todayCompleted = attendanceData.some(record => 
-            new Date(record.clock_in).toISOString().split('T')[0] === today && record.clock_out
-          )
-          setIsTodayCompleted(todayCompleted)
-          
-          // データ整形
-          const formattedRecords = attendanceData.reduce<AttendanceRecord[]>((acc, record) => {
-            const date = new Date(record.clock_in).toLocaleDateString('ja-JP');
-            const time = new Date(record.clock_in).toLocaleTimeString('ja-JP', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            }).slice(0, 5);
-
-            const isCrossDay = record.clock_out 
-              ? new Date(record.clock_in).toDateString() !== new Date(record.clock_out).toDateString()
-              : false;
-
-            const existingRecordIndex = acc.findIndex(r => r.date === date);
-            if (existingRecordIndex !== -1) {
-              if (record.clock_out) {
-                acc[existingRecordIndex].clockOut = new Date(record.clock_out).toLocaleTimeString('ja-JP', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                }).slice(0, 5);
-                acc[existingRecordIndex].isCrossDay = isCrossDay;
-                acc[existingRecordIndex].originalClockOut = record.clock_out;
-              }
-            } else {
-              acc.push({
-                date,
-                clockIn: time,
-                clockOut: record.clock_out 
-                  ? new Date(record.clock_out).toLocaleTimeString('ja-JP', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false
-                    }).slice(0, 5)
-                  : null,
-                isCrossDay,
-                originalClockIn: record.clock_in,
-                originalClockOut: record.clock_out
-              });
-            }
-            return acc;
-          }, []);
-          
-          setRecords(formattedRecords);
-          // 有効な勤務記録を抽出（月をまたぐ記録も含む）
-          const validRecords = attendanceData.filter(record => 
-            record.clock_in && record.clock_out
-          )
-          
-          if (validRecords.length > 0) {
-            const firstRecord = validRecords[0]
-            const total = calculateWorkTime(
-              firstRecord.clock_in, 
-              firstRecord.clock_out
-            )
-            
-            setWorkTime({
-              total,
-              name: staffData.name,
-              clockIn: new Date(firstRecord.clock_in).toLocaleTimeString('ja-JP', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }).slice(0, 5),
-              clockOut: new Date(firstRecord.clock_out).toLocaleTimeString('ja-JP', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-              }).slice(0, 5)
-            })
-          }
-          
-          // ステータス更新
-          const lastRecord = attendanceData[attendanceData.length - 1]
-          setStatus({
-            isWorking: lastRecord && !lastRecord.clock_out,
-            lastClockIn: lastRecord?.clock_in || null,
-            lastClockOut: lastRecord?.clock_out || null,
-            status: lastRecord 
-              ? (lastRecord.clock_out ? '退勤済み' : '勤務中')
-              : null
-          })
-          
-          // 整合性チェック
-          if (!validateRecords(attendanceData)) {
-            setError('記録に不整合があります。管理者に連絡してください。')
-          }
-        }
-      } catch (err) {
-        console.error('データ取得エラー:', err)
-        setError('データの取得に失敗しました')
-      }
-    }
+  const fetchData = useCallback(async () => {
+    if (!staffId) return;
     
-    fetchData()
-  }, [staffId])
+    try {
+      const supabase = createClient();
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth(); // 0-indexed
+
+      // 今月の月初と月末 (期間計算の基準となる日付)
+      const firstDayOfCurrentMonth = new Date(currentYear, currentMonth, 1);
+      const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+      // 前月の月初と月末 (月跨ぎ勤務の出勤日取得のため)
+      const firstDayOfPreviousMonth = new Date(currentYear, currentMonth - 1, 1);
+      
+      // スタッフデータ取得
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('id', staffId)
+        .single();
+      
+      if (staffError) throw staffError;
+      setStaff(staffData);
+
+      // 勤怠データ取得
+      // 取得範囲: 前月の月初から今月の月末まで（月跨ぎ勤務を確実に取得するため）
+      // clock_in が前月の月初から今月の月末まで、または
+      // clock_in が前月以前でも clock_out が今月以降のものを取得
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('staff_id', staffId)
+        .or(
+            `and(clock_in.gte.${firstDayOfPreviousMonth.toISOString()},clock_in.lte.${lastDayOfCurrentMonth.toISOString()}),` +
+            `and(clock_in.lt.${firstDayOfPreviousMonth.toISOString()},clock_out.gte.${firstDayOfCurrentMonth.toISOString()})`
+        )
+        .order('clock_in', { ascending: true });
+
+      if (attendanceError) throw attendanceError;
+      
+      if (attendanceData) {
+        const todayIso = now.toISOString().split('T')[0];
+        
+        // 本日の出退勤完了チェック
+        // 今日の出勤記録があり、かつ退勤記録もあるか
+        const todayCompleted = attendanceData.some(record => 
+          record.clock_in && new Date(record.clock_in).toISOString().split('T')[0] === todayIso && record.clock_out
+        );
+        setIsTodayCompleted(todayCompleted);
+
+        // データ整形と月次合計の計算
+        let totalMonthlyMinutes = 0;
+        const formattedRecords: AttendanceRecord[] = [];
+        
+        attendanceData.forEach(record => {
+          const recordClockIn = new Date(record.clock_in);
+          const recordClockOut = record.clock_out ? new Date(record.clock_out) : null;
+
+          // 「〇月の記録」に表示するレコードをフィルタリング (出勤日基準で当月分)
+          // または、出勤が前月でも退勤が当月にある場合は表示
+          if (recordClockIn.getMonth() === currentMonth || (recordClockOut && recordClockOut.getMonth() === currentMonth && recordClockIn.getMonth() !== currentMonth)) {
+                const isCrossDay = recordClockOut ? recordClockIn.toDateString() !== recordClockOut.toDateString() : false;
+
+                formattedRecords.push({
+                    date: recordClockIn.toLocaleDateString('ja-JP'),
+                    clockIn: recordClockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5),
+                    clockOut: recordClockOut ? recordClockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5) : null,
+                    isCrossDay,
+                    originalClockIn: record.clock_in, // ISO形式で保持
+                    originalClockOut: record.clock_out // ISO形式で保持
+                });
+            }
+
+            // 「本日の勤務時間」の更新
+            // 今日出勤した記録で、かつ退勤済みの場合
+            if (recordClockIn.toISOString().split('T')[0] === todayIso && record.clock_out) {
+                setWorkTime({
+                    total: calculateWorkTime(record.clock_in, record.clock_out),
+                    name: staffData.name,
+                    clockIn: recordClockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5),
+                    clockOut: recordClockOut!.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5)
+                });
+            } else if (recordClockIn.toISOString().split('T')[0] === todayIso && !record.clock_out) {
+                // 今日出勤したがまだ退勤していない場合
+                setWorkTime({
+                    total: '勤務中', // またはリアルタイム計算するなど
+                    name: staffData.name,
+                    clockIn: recordClockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5),
+                    clockOut: '未退勤'
+                });
+            }
+
+            // 月累計の勤務時間計算 (当月分のみを抽出して合計)
+            if (record.clock_out) {
+                // 勤務期間が当月と重なる部分を抽出して加算
+                const segmentMinutes = getMinutesFromHHMM(
+                    calculateWorkTimeForPeriod(record.clock_in, record.clock_out, firstDayOfCurrentMonth, lastDayOfCurrentMonth)
+                );
+                totalMonthlyMinutes += segmentMinutes;
+            }
+        });
+        
+        // 取得したレコードを日付順にソート (重複表示を防ぐため)
+        formattedRecords.sort((a, b) => new Date(a.originalClockIn).getTime() - new Date(b.originalClockIn).getTime());
+        setRecords(formattedRecords);
+        
+        setMonthlyTotal({
+            hours: Math.floor(totalMonthlyMinutes / 60),
+            minutes: totalMonthlyMinutes % 60
+        });
+
+        // ステータス更新
+        // 最新の未退勤記録を探す
+        const lastUnclockedOut = attendanceData.findLast(r => !r.clock_out);
+        // 最新の退勤済み記録を探す
+        const lastClockedOut = attendanceData.findLast(r => r.clock_out);
+
+        const currentStatus: AttendanceStatus = {
+            isWorking: !!lastUnclockedOut,
+            lastClockIn: lastUnclockedOut?.clock_in || lastClockedOut?.clock_in || null,
+            lastClockOut: lastUnclockedOut ? null : (lastClockedOut?.clock_out || null),
+            status: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null)
+        };
+        setStatus(currentStatus);
+        
+        // 整合性チェック
+        if (!validateRecords(attendanceData)) {
+          setError('記録に不整合があります。管理者に連絡してください。');
+        } else {
+            setError(null); // エラーがなければクリア
+        }
+      }
+    } catch (err) {
+      console.error('データ取得エラー:', err);
+      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+    }
+  }, [staffId]);
+
+  // データ取得をuseEffectでトリガー
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // 出退勤処理
   const handleAttendance = async (type: '出勤' | '退勤') => {
     try {
-      if (!staff) throw new Error('スタッフ情報がありません')
+      if (!staff) throw new Error('スタッフ情報がありません');
       
-      const supabase = createClient()
-      const now = new Date()
-      const today = new Date().toISOString().split('T')[0]
+      const supabase = createClient();
+      const now = new Date();
+      const todayIso = now.toISOString().split('T')[0];
       
-      // 既存記録取得
-      const { data: existingRecords } = await supabase
+      // 既存記録取得（直近の未退勤記録を確認するため、本日以降のデータに限定しない）
+      const { data: allRecentRecords, error: recentRecordsError } = await supabase
         .from('attendance')
         .select('*')
         .eq('staff_id', staff.id)
-        .gte('clock_in', today)
-        .order('clock_in', { ascending: true })
-      
+        .order('clock_in', { ascending: false }) // 最新の記録を最初に取得
+        .limit(1); // 直近の1件のみ取得
+
+      if (recentRecordsError) throw recentRecordsError;
+
+      const latestRecord = allRecentRecords ? allRecentRecords[0] : null;
+
       // バリデーション
       if (type === '出勤') {
-        // 本日の出勤記録をチェック
-        const todayClockIn = existingRecords?.find(r => 
-          new Date(r.clock_in).toISOString().split('T')[0] === today
-        )
-        
-        if (todayClockIn) {
-          throw new Error('本日は既に出勤済みです')
+        if (latestRecord && !latestRecord.clock_out) {
+          throw new Error('既に勤務中の記録があります。');
         }
         
+        // 本日中に退勤済みの場合、再度出勤させない
+        if (latestRecord && latestRecord.clock_out && new Date(latestRecord.clock_in).toISOString().split('T')[0] === todayIso) {
+            throw new Error('本日は既に出勤・退勤済みです。');
+        }
+
         const { error } = await supabase
           .from('attendance')
           .insert({
             staff_id: staff.id,
             clock_in: now.toISOString()
-          })
+          });
           
-        if (error) throw error
+        if (error) throw error;
       } 
       else if (type === '退勤') {
-        // 本日の出勤記録をチェック
-        const todayClockIn = existingRecords?.find(r => 
-          new Date(r.clock_in).toISOString().split('T')[0] === today && !r.clock_out
-        )
-        
-        if (!todayClockIn) {
-          throw new Error('本日の出勤記録がありません')
+        if (!latestRecord || latestRecord.clock_out) {
+          throw new Error('出勤記録がありません、または既に退勤済みです。');
         }
         
-        // 本日の退勤記録をチェック
-        const todayClockOut = existingRecords?.find(r => 
-          new Date(r.clock_in).toISOString().split('T')[0] === today && r.clock_out
-        )
-        
-        if (todayClockOut) {
-          throw new Error('本日は既に退勤済みです')
+        // 退勤時間が現在時刻より過去にならないようにチェック
+        if (new Date(latestRecord.clock_in).getTime() > now.getTime()) {
+            throw new Error('出勤時間より前の時刻に退勤することはできません。');
         }
-        
+
         const { error } = await supabase
           .from('attendance')
           .update({ clock_out: now.toISOString() })
-          .eq('id', todayClockIn.id)
+          .eq('id', latestRecord.id); // 最新の未退勤レコードを更新
           
-        if (error) throw error
-        
-        // 勤務時間計算
-        const total = calculateWorkTime(todayClockIn.clock_in, now.toISOString())
-        setWorkTime({
-          total,
-          name: staff.name,
-          clockIn: new Date(todayClockIn.clock_in).toLocaleTimeString('ja-JP', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }).slice(0, 5),
-          clockOut: now.toLocaleTimeString('ja-JP', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }).slice(0, 5)
-        })
+        if (error) throw error;
       }
       
-      // データ再取得
-      const { data: updatedRecords } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('staff_id', staff.id)
-        .gte('clock_in', today)
-        .order('clock_in', { ascending: true })
-      
-      if (updatedRecords) {
-        setRecords(updatedRecords.map(record => ({
-          date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
-          clockIn: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }).slice(0, 5),
-          clockOut: record.clock_out ? new Date(record.clock_out).toLocaleTimeString('ja-JP', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }).slice(0, 5) : null,
-          isCrossDay: record.clock_out 
-            ? new Date(record.clock_in).toDateString() !== new Date(record.clock_out).toDateString()
-            : false
-        })))
-        
-        setStatus({
-          isWorking: updatedRecords.some(r => !r.clock_out),
-          lastClockIn: updatedRecords[0]?.clock_in || null,
-          lastClockOut: updatedRecords.find(r => r.clock_out)?.clock_out || null,
-          status: updatedRecords.some(r => !r.clock_out) ? '勤務中' : '退勤済み'
-        })
-      }
+      // データ再取得してUIを更新
+      await fetchData();
+      setError(null); // エラーがあればクリア
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました')
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     }
-  }
+  };
 
   // データ修復関数
   const fixData = async () => {
-    if (!staff) return
+    if (!staff) return;
     
     try {
-      const supabase = createClient()
-      const today = new Date().toISOString().split('T')[0]
+      const supabase = createClient();
+      const today = new Date().toISOString().split('T')[0];
       
-      // 不正な記録を削除
-      const { data: records } = await supabase
+      // 今日の記録を取得 (出勤日が今日以降、または退勤日が今日以降の未退勤記録)
+      const { data: recordsToFix, error: fetchError } = await supabase
         .from('attendance')
         .select('*')
         .eq('staff_id', staff.id)
-        .gte('clock_in', today)
-        .order('clock_in', { ascending: true })
+        .or(`clock_in.gte.${today},clock_out.gte.${today}`)
+        .order('clock_in', { ascending: true });
+
+      if (fetchError) throw fetchError;
       
-      if (records && records.length > 2) {
-        const validIds = [
-          records[0].id, 
-          records.find(r => r.clock_out)?.id
-        ].filter(Boolean)
+      if (recordsToFix && recordsToFix.length > 0) {
+        // 未退勤の記録を全て取得
+        const unclockedOutRecords = recordsToFix.filter(r => !r.clock_out);
         
-        await supabase
-          .from('attendance')
-          .delete()
-          .not('id', 'in', `(${validIds.join(',')})`)
-          .eq('staff_id', staff.id)
-          
-        alert('データを修復しました')
-        window.location.reload()
+        let idsToDelete: string[] = [];
+
+        if (unclockedOutRecords.length > 1) {
+            // 複数の未退勤記録がある場合、最新のもの以外を削除
+            const latestUnclockedOut = unclockedOutRecords.pop(); // 最新の未退勤記録
+            idsToDelete = unclockedOutRecords.map(r => r.id); // それ以外を削除対象に
+        }
+
+        // また、同じ日に複数回出退勤記録があり、その整合性が取れていない場合に備え、
+        // 簡易的に最新の記録以外を削除するロジックを検討しても良いが、ここでは未退勤の重複に絞る
+        // より複雑な整合性問題は手動または管理画面での対応が良い
+
+        if (idsToDelete.length > 0) {
+            const { error: deleteError } = await supabase
+            .from('attendance')
+            .delete()
+            .in('id', idsToDelete);
+
+            if (deleteError) throw deleteError;
+            alert('重複した出勤記録を削除し、データを修復しました。');
+        } else {
+            alert('修復する重複データはありませんでした。');
+        }
+        await fetchData(); // データ再取得
+      } else {
+          alert('修復対象となるデータがありません。');
       }
     } catch (err) {
-      setError('修復に失敗しました')
+      console.error('データ修復エラー:', err);
+      setError('修復に失敗しました');
     }
-  }
+  };
 
   if (!staff) return <div className={styles.loading}>読み込み中...</div>
 
@@ -441,7 +463,7 @@ function AttendanceContent() {
           {error}
           {error.includes('不整合') && (
             <button onClick={fixData} className={styles.fixButton}>
-              データ修復
+              データ修復（重複出勤記録の解消）
             </button>
           )}
         </div>
@@ -459,14 +481,22 @@ function AttendanceContent() {
       </div>
 
       {workTime && (
-        <div className={styles.workTime}>
-          <h2>本日の勤務時間</h2>
+        <div className={styles.workTimeDisplay}>
+          <h2>本日の勤務概要</h2>
           <p>{workTime.name}さん</p>
           <p>勤務時間: {workTime.total}</p>
           <p>出勤: {workTime.clockIn}</p>
           <p>退勤: {workTime.clockOut}</p>
         </div>
       )}
+
+      {monthlyTotal && (
+        <div className={styles.monthlySummary}>
+          <h2>{new Date().getMonth() + 1}月累計</h2>
+          <p>総勤務時間: {monthlyTotal.hours}時間{monthlyTotal.minutes}分</p>
+        </div>
+      )}
+
 
       <div className={styles.records}>
         <h2>{new Date().getMonth() + 1}月の記録</h2>
@@ -481,7 +511,7 @@ function AttendanceContent() {
                     <span className={styles.crossDayBadge}>日付跨ぎ</span>
                   )}
                   {record.clockOut && record.originalClockIn && record.originalClockOut && (
-                    <span className={styles.workTime}>
+                    <span className={styles.calculatedWorkTime}>
                       勤務時間: {calculateWorkTime(
                         record.originalClockIn,
                         record.originalClockOut
@@ -491,21 +521,6 @@ function AttendanceContent() {
                 </span>
               </div>
             ))}
-            <div className={styles.monthlyTotal}>
-              当月合計: {(() => {
-                const totalMinutes = records.reduce((total, record) => {
-                  if (record.clockOut && record.originalClockIn && record.originalClockOut) {
-                    const time = calculateWorkTime(record.originalClockIn, record.originalClockOut)
-                    const [hours, minutes] = time.split(':').map(Number)
-                    return total + hours * 60 + minutes
-                  }
-                  return total
-                }, 0)
-                const hours = Math.floor(totalMinutes / 60)
-                const minutes = totalMinutes % 60
-                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
-              })()}
-            </div>
           </>
         ) : (
           <p>記録がありません</p>
@@ -523,7 +538,7 @@ function AttendanceContent() {
         <button
           className={styles.buttonDanger}
           onClick={() => handleAttendance('退勤')}
-          disabled={status.status === '退勤済み' || isTodayCompleted || !status.lastClockIn}
+          disabled={status.status === '退勤済み' || !status.isWorking}
         >
           退勤
         </button>
@@ -532,12 +547,12 @@ function AttendanceContent() {
       {staff && (
         <div className={styles.testButtons}>
           <div className={styles.testPatterns}>
-            <h3>テストパターン</h3>
+            <h3>テストパターン（本日分を上書き）</h3>
             {testPatterns.map(pattern => (
               <button 
                 key={pattern.name}
                 className={styles.buttonTest}
-                onClick={() => insertAndValidateTestData(staff.id, pattern.name)}
+                onClick={() => insertAndValidateTestData(staff.id, pattern.name, createClient())}
               >
                 {pattern.name}
                 <span className={styles.patternDescription}>{pattern.description}</span>
@@ -546,9 +561,9 @@ function AttendanceContent() {
           </div>
           <button 
             className={styles.buttonTest}
-            onClick={() => deleteTestData(staff.id)}
+            onClick={() => deleteTestData(staff.id, createClient())}
           >
-            テストデータ削除
+            テストデータ削除（本日分）
           </button>
         </div>
       )}
