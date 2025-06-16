@@ -310,17 +310,19 @@ function AttendanceContent() {
 
       <div className={styles.status}>
         <h2 className={styles.subtitle}>現在のステータス</h2>
-        <p className={status.isWorking ? styles.working : styles.notWorking}>
-          {status.isWorking ? '勤務中' : '退勤済み'}
-        </p>
         {status.lastClockIn && (
-          <p className={styles.lastRecord}>
-            最終{status.isWorking ? '出勤' : '退勤'}: {new Date(status.lastClockIn).toLocaleTimeString('ja-JP', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false
-            })}
-          </p>
+          <>
+            <p className={status.isWorking ? styles.working : styles.notWorking}>
+              {status.isWorking ? '勤務中' : '退勤済み'}
+            </p>
+            <p className={styles.lastRecord}>
+              最終{status.isWorking ? '出勤' : '退勤'}: {new Date(status.lastClockIn).toLocaleTimeString('ja-JP', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              })}
+            </p>
+          </>
         )}
       </div>
 
