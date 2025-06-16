@@ -5,6 +5,7 @@ import { Suspense, useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import styles from './attendance.module.css'
 import Link from 'next/link'
+import { insertTestData, deleteTestData } from './testData'
 
 /**
  * スタッフ情報の型定義
@@ -53,6 +54,26 @@ type AttendanceStatus = {
 }
 
 /**
+ * 勤務時間を計算する関数
+ * @param {Array<{clock_in: string, clock_out: string}>} records - 勤務記録の配列
+ * @returns {string} 合計勤務時間（HH:MM形式）
+ */
+const calculateTotalWorkTime = (records: { clock_in: string; clock_out: string }[]) => {
+  let totalMinutes = 0
+
+  records.forEach(record => {
+    const clockIn = new Date(record.clock_in)
+    const clockOut = new Date(record.clock_out)
+    const diffMinutes = Math.floor((clockOut.getTime() - clockIn.getTime()) / (1000 * 60))
+    totalMinutes += diffMinutes
+  })
+
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+}
+
+/**
  * 出退勤管理のメインコンポーネント
  * @returns {JSX.Element} 出退勤管理画面
  */
@@ -69,42 +90,6 @@ function AttendanceContent() {
     lastClockIn: null,
     lastClockOut: null
   })
-
-  /**
-   * 勤務時間を計算する
-   * @param {string} clockIn - 出勤時間（ISO形式）
-   * @param {string} clockOut - 退勤時間（ISO形式）
-   * @returns {string} 勤務時間（例：8時間30分）
-   */
-  const calculateWorkTime = (clockIn: string, clockOut: string): string => {
-    const start = new Date(clockIn)
-    const end = new Date(clockOut)
-    const diff = end.getTime() - start.getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
-    return `${hours}時間${minutes}分`
-  }
-
-  /**
-   * 勤務時間の合計を計算する
-   * @param {Array<{clock_in: string, clock_out: string | null}>} records - 出退勤記録の配列
-   * @returns {string} 合計勤務時間（例：8時間30分）
-   */
-  const calculateTotalWorkTime = (records: Array<{clock_in: string, clock_out: string | null}>): string => {
-    const totalMinutes = records.reduce((total, record) => {
-      if (record.clock_out) {
-        const start = new Date(record.clock_in)
-        const end = new Date(record.clock_out)
-        const diff = end.getTime() - start.getTime()
-        return total + Math.floor(diff / (1000 * 60))
-      }
-      return total
-    }, 0)
-
-    const hours = Math.floor(totalMinutes / 60)
-    const minutes = totalMinutes % 60
-    return `${hours}時間${minutes}分`
-  }
 
   /**
    * 初期データを取得する
@@ -225,12 +210,7 @@ function AttendanceContent() {
           .select()
           
           if (error) {
-            console.error('出勤記録の保存に失敗:', {
-              error,
-              staffId: staff.id,
-              timestamp: now.toISOString(),
-              type: '出勤'
-            })
+            console.error('出勤記録の保存に失敗:', error)
             throw new Error(`出勤記録の保存に失敗しました: ${error.message}`)
           }
 
@@ -256,13 +236,7 @@ function AttendanceContent() {
           .select()
           
           if (error) {
-            console.error('退勤記録の更新に失敗:', {
-              error,
-              staffId: staff.id,
-              timestamp: now.toISOString(),
-              type: '退勤',
-              latestRecord
-            })
+            console.error('退勤記録の更新に失敗:', error)
             throw new Error(`退勤記録の更新に失敗しました: ${error.message}`)
           }
 
@@ -404,6 +378,23 @@ function AttendanceContent() {
           </div>
         )}
       </div>
+
+      {staff && (
+        <div className={styles.testButtons}>
+          <button 
+            className={styles.buttonTest}
+            onClick={() => insertTestData(staff.id)}
+          >
+            テストデータ挿入
+          </button>
+          <button 
+            className={styles.buttonTest}
+            onClick={() => deleteTestData(staff.id)}
+          >
+            テストデータ削除
+          </button>
+        </div>
+      )}
     </div>
   )
 }
