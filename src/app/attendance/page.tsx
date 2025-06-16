@@ -184,20 +184,20 @@ function AttendanceContent() {
               hour12: false
             }).slice(0, 5);
 
-            // 日付跨ぎチェック（月をまたぐ場合も含む）
             const isCrossDay = record.clock_out 
               ? new Date(record.clock_in).toDateString() !== new Date(record.clock_out).toDateString()
               : false;
 
-            const existingRecord = acc.find(r => r.date === date);
-            if (existingRecord) {
+            const existingRecordIndex = acc.findIndex(r => r.date === date);
+            if (existingRecordIndex !== -1) {
               if (record.clock_out) {
-                existingRecord.clockOut = new Date(record.clock_out).toLocaleTimeString('ja-JP', {
+                acc[existingRecordIndex].clockOut = new Date(record.clock_out).toLocaleTimeString('ja-JP', {
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: false
                 }).slice(0, 5);
-                existingRecord.isCrossDay = isCrossDay;
+                acc[existingRecordIndex].isCrossDay = isCrossDay;
+                acc[existingRecordIndex].originalClockOut = record.clock_out;
               }
             } else {
               acc.push({
@@ -210,14 +210,15 @@ function AttendanceContent() {
                       hour12: false
                     }).slice(0, 5)
                   : null,
-                isCrossDay
+                isCrossDay,
+                originalClockIn: record.clock_in,
+                originalClockOut: record.clock_out
               });
             }
             return acc;
           }, []);
           
           setRecords(formattedRecords);
-          
           // 有効な勤務記録を抽出（月をまたぐ記録も含む）
           const validRecords = attendanceData.filter(record => 
             record.clock_in && record.clock_out
@@ -478,11 +479,11 @@ function AttendanceContent() {
                 {record.isCrossDay && (
                   <span className={styles.crossDayBadge}>日付跨ぎ</span>
                 )}
-                {record.clockOut && (
+                {record.clockOut && record.originalClockIn && record.originalClockOut && (
                   <span className={styles.workTime}>
                     勤務時間: {calculateWorkTime(
-                      new Date(record.date + ' ' + record.clockIn).toISOString(),
-                      new Date(record.date + ' ' + record.clockOut).toISOString()
+                      record.originalClockIn,
+                      record.originalClockOut
                     )}
                   </span>
                 )}
