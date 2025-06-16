@@ -73,17 +73,62 @@ function AttendanceContent() {
   /**
    * 出退勤記録を処理する
    * @param {AttendanceRecord['type']} type - 記録の種類（出勤/退勤/休憩開始/休憩終了）
-   * @returns {void}
+   * @returns {Promise<void>}
    */
-  const handleAttendance = (type: AttendanceRecord['type']) => {
-    const now = new Date()
-    const time = now.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    })
-    
-    setRecords(prev => [...prev, { time, type }])
+  const handleAttendance = async (type: AttendanceRecord['type']) => {
+    try {
+      // 1. 現在時刻の取得
+      const now = new Date()
+      const time = now.toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+
+      // 2. バリデーション
+      if (!staff) {
+        throw new Error('スタッフ情報が見つかりません');
+      }
+
+      // 3. 出退勤記録の保存
+      const supabase = createClient()
+      
+      if (type === '出勤') {
+        // 出勤時は新規レコードを作成
+        const { error } = await supabase
+          .from('attendance')
+          .insert({
+            staff_id: staff.id,
+            clock_in: now.toISOString()
+          })
+          .select() // 保存後のレコードを取得
+          
+          if (error) {
+            throw new Error('記録の保存に失敗しました');
+          }
+      } else if (type === '退勤') {
+        // 退勤時は最新の出勤レコードを更新
+        const { error } = await supabase
+          .from('attendance')
+          .update({
+            clock_out: now.toISOString()
+          })
+          .eq('staff_id', staff.id)
+          .is('clock_out', null) // 退勤時間が未設定のレコードを更新
+          .order('clock_in', { ascending: false }) // 出勤時間の降順で最新のレコードを取得
+          .limit(1) // 最新のレコードを1件取得
+          .select()
+          
+          if (error) {
+            throw new Error('記録の更新に失敗しました');
+          }
+      }
+
+      // 4. ローカルの状態更新
+      setRecords(prev => [...prev, { time, type }])
+    } catch (error) {
+      console.log('勤怠管理レコードの保存に失敗しました', error); 
+    }
   }
 
   if (loading) {
