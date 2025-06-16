@@ -478,6 +478,14 @@ function AttendanceContent() {
                 {record.isCrossDay && (
                   <span className={styles.crossDayBadge}>日付跨ぎ</span>
                 )}
+                {record.clockOut && (
+                  <span className={styles.workTime}>
+                    勤務時間: {calculateWorkTime(
+                      new Date(record.date + ' ' + record.clockIn).toISOString(),
+                      new Date(record.date + ' ' + record.clockOut).toISOString()
+                    )}
+                  </span>
+                )}
               </span>
             </div>
           ))
