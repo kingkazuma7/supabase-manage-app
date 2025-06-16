@@ -143,7 +143,9 @@ function AttendanceContent() {
       
       try {
         const supabase = createClient()
-        const today = new Date().toISOString().split('T')[0]
+        const now = new Date()
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         
         // スタッフデータ取得
         const { data: staffData } = await supabase
@@ -152,18 +154,20 @@ function AttendanceContent() {
           .eq('id', staffId)
           .single()
 
-        // 勤怠データ取得
+        // 勤怠データ取得（月間）
         const { data: attendanceData } = await supabase
           .from('attendance')
           .select('*')
           .eq('staff_id', staffId)
-          .gte('clock_in', today)
+          .gte('clock_in', firstDayOfMonth.toISOString())
+          .lte('clock_in', lastDayOfMonth.toISOString())
           .order('clock_in', { ascending: true })
 
         setStaff(staffData)
         
         if (attendanceData) {
           // 本日の出退勤完了チェック
+          const today = new Date().toISOString().split('T')[0]
           const todayCompleted = attendanceData.some(record => 
             new Date(record.clock_in).toISOString().split('T')[0] === today && record.clock_out
           )
@@ -425,7 +429,7 @@ function AttendanceContent() {
       )}
 
       <div className={styles.records}>
-        <h2>本日の記録</h2>
+        <h2>{new Date().getMonth() + 1}月の記録</h2>
         {records.length > 0 ? (
           records.map((record, i) => (
             <div key={i} className={styles.record}>
