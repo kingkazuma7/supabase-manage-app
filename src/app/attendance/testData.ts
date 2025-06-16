@@ -103,13 +103,33 @@ const multiDayPattern: TestPattern = {
 }
 
 /**
+ * 月跨ぎパターン（月末21:00-翌月2:30）
+ */
+const crossMonthPattern: TestPattern = {
+  name: '月跨ぎ',
+  description: '月末21:00-翌月2:30（5.5時間）',
+  generate: () => {
+    const today = new Date()
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    const firstDayOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    
+    return [{
+      clock_in: new Date(lastDayOfMonth.setHours(21, 0, 0)).toISOString(),
+      clock_out: new Date(firstDayOfNextMonth.setHours(2, 30, 0)).toISOString(),
+      expected_wage: (3 * 1875) + (2.5 * 2000) // 21:00-24:00, 24:00-02:30
+    }]
+  }
+}
+
+/**
  * 利用可能なテストパターン
  */
 export const testPatterns: TestPattern[] = [
   normalPattern,
   nightPattern,
   crossDayPattern,
-  multiDayPattern
+  multiDayPattern,
+  crossMonthPattern
 ]
 
 /**
