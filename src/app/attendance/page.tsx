@@ -40,6 +40,19 @@ type WorkTime = {
 }
 
 /**
+ * 出退勤ステータスの型定義
+ * @typedef {Object} AttendanceStatus
+ * @property {boolean} isWorking - 勤務中かどうか
+ * @property {string | null} lastClockIn - 最後の出勤時間（ISO形式）
+ * @property {string | null} lastClockOut - 最後の退勤時間（ISO形式）
+ */
+type AttendanceStatus = {
+  isWorking: boolean
+  lastClockIn: string | null
+  lastClockOut: string | null
+}
+
+/**
  * 出退勤管理のメインコンポーネント
  * @returns {JSX.Element} 出退勤管理画面
  */
@@ -51,6 +64,11 @@ function AttendanceContent() {
   const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const [workTime, setWorkTime] = useState<WorkTime | null>(null)
+  const [status, setStatus] = useState<AttendanceStatus>({
+    isWorking: false,
+    lastClockIn: null,
+    lastClockOut: null
+  })
 
   /**
    * 勤務時間を計算する
@@ -133,6 +151,14 @@ function AttendanceContent() {
               name: staffData.name
             })
           }
+
+          // ステータスの更新
+          const latestRecord = recordsData[recordsData.length - 1]
+          setStatus({
+            isWorking: latestRecord && !latestRecord.clock_out,
+            lastClockIn: latestRecord?.clock_in || null,
+            lastClockOut: latestRecord?.clock_out || null
+          })
         }
       } catch (err) {
         console.error('初期データの取得に失敗:', err)
@@ -208,6 +234,13 @@ function AttendanceContent() {
             throw new Error(`出勤記録の保存に失敗しました: ${error.message}`)
           }
 
+          // ステータスの更新
+          setStatus({
+            isWorking: true,
+            lastClockIn: now.toISOString(),
+            lastClockOut: null
+          })
+
           // 出勤成功時のアラート
           alert(`${time}に出勤しました`)
       } else if (type === '退勤') {
@@ -232,6 +265,13 @@ function AttendanceContent() {
             })
             throw new Error(`退勤記録の更新に失敗しました: ${error.message}`)
           }
+
+          // ステータスの更新
+          setStatus({
+            isWorking: false,
+            lastClockIn: latestRecord?.clock_in || null,
+            lastClockOut: now.toISOString()
+          })
 
           // 退勤成功時のアラート
           alert(`${time}に退勤しました`)
@@ -294,6 +334,22 @@ function AttendanceContent() {
         </div>
       )}
 
+      <div className={styles.status}>
+        <h2 className={styles.subtitle}>現在のステータス</h2>
+        <p className={status.isWorking ? styles.working : styles.notWorking}>
+          {status.isWorking ? '勤務中' : '退勤済み'}
+        </p>
+        {status.lastClockIn && (
+          <p className={styles.lastRecord}>
+            最終{status.isWorking ? '出勤' : '退勤'}: {new Date(status.lastClockIn).toLocaleTimeString('ja-JP', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            })}
+          </p>
+        )}
+      </div>
+
       {workTime && (
         <div className={styles.workTime}>
           <h2 className={styles.subtitle}>本日の勤務時間</h2>
@@ -305,24 +361,28 @@ function AttendanceContent() {
         <button 
           className={styles.buttonPrimary}
           onClick={() => handleAttendance('出勤')}
+          disabled={status.isWorking}
         >
           出勤
         </button>
         <button 
           className={styles.buttonDanger}
           onClick={() => handleAttendance('退勤')}
+          disabled={!status.isWorking}
         >
           退勤
         </button>
         <button 
           className={styles.buttonSecondary}
           onClick={() => handleAttendance('休憩開始')}
+          disabled={!status.isWorking}
         >
           休憩開始
         </button>
         <button 
           className={styles.buttonSecondary}
           onClick={() => handleAttendance('休憩終了')}
+          disabled={!status.isWorking}
         >
           休憩終了
         </button>

@@ -147,4 +147,32 @@
 
 .backButton:hover {
   background-color: #e5e7eb;
+}
+
+.status {
+  background-color: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.working {
+  color: #059669;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+}
+
+.notWorking {
+  color: #6b7280;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0.5rem 0;
+}
+
+.lastRecord {
+  color: #4b5563;
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
 } 
