@@ -175,7 +175,7 @@ function AttendanceContent() {
               hour: '2-digit',
               minute: '2-digit',
               hour12: false
-            }),
+            }).slice(0, 5),
             date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
             type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
           }))
@@ -197,8 +197,16 @@ function AttendanceContent() {
             setWorkTime({
               total,
               name: staffData.name,
-              clockIn: new Date(firstRecord.clock_in).toLocaleString('ja-JP'),
-              clockOut: new Date(firstRecord.clock_out).toLocaleString('ja-JP')
+              clockIn: new Date(firstRecord.clock_in).toLocaleTimeString('ja-JP', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }).slice(0, 5),
+              clockOut: new Date(firstRecord.clock_out).toLocaleTimeString('ja-JP', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }).slice(0, 5)
             })
           }
           
@@ -295,8 +303,16 @@ function AttendanceContent() {
         setWorkTime({
           total,
           name: staff.name,
-          clockIn: new Date(todayClockIn.clock_in).toLocaleString('ja-JP'),
-          clockOut: now.toLocaleString('ja-JP')
+          clockIn: new Date(todayClockIn.clock_in).toLocaleTimeString('ja-JP', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).slice(0, 5),
+          clockOut: now.toLocaleTimeString('ja-JP', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).slice(0, 5)
         })
       }
       
@@ -310,7 +326,11 @@ function AttendanceContent() {
       
       if (updatedRecords) {
         setRecords(updatedRecords.map(record => ({
-          time: new Date(record.clock_in).toLocaleTimeString('ja-JP'),
+          time: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).slice(0, 5),
           date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
           type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
         })))
