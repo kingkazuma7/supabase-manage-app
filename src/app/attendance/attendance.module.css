@@ -12,7 +12,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   padding: 1rem 0;
   border-bottom: 1px solid var(--gray-alpha-200);
 }
@@ -133,4 +133,18 @@
   padding: 2rem;
   color: #6b7280;
   font-size: 1.1rem;
+}
+
+.backButton {
+  padding: 0.5rem 1rem;
+  background-color: #f3f4f6;
+  color: #374151;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.backButton:hover {
+  background-color: #e5e7eb;
 } 

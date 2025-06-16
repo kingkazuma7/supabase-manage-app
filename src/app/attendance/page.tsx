@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import styles from './attendance.module.css'
+import Link from 'next/link'
 
 /**
  * スタッフ情報の型定義
@@ -67,6 +68,27 @@ function AttendanceContent() {
   }
 
   /**
+   * 勤務時間の合計を計算する
+   * @param {Array<{clock_in: string, clock_out: string | null}>} records - 出退勤記録の配列
+   * @returns {string} 合計勤務時間（例：8時間30分）
+   */
+  const calculateTotalWorkTime = (records: Array<{clock_in: string, clock_out: string | null}>): string => {
+    const totalMinutes = records.reduce((total, record) => {
+      if (record.clock_out) {
+        const start = new Date(record.clock_in)
+        const end = new Date(record.clock_out)
+        const diff = end.getTime() - start.getTime()
+        return total + Math.floor(diff / (1000 * 60))
+      }
+      return total
+    }, 0)
+
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+    return `${hours}時間${minutes}分`
+  }
+
+  /**
    * 初期データを取得する
    * @returns {Promise<void>}
    */
@@ -105,21 +127,9 @@ function AttendanceContent() {
           // 勤務時間の計算
           const completedRecords = recordsData.filter(record => record.clock_out)
           if (completedRecords.length > 0) {
-            const totalWorkTime = completedRecords.reduce((total, record) => {
-              if (record.clock_out) {
-                const workTime = calculateWorkTime(record.clock_in, record.clock_out)
-                const [hours, minutes] = workTime.split('時間').map(part => 
-                  parseInt(part.replace('分', ''))
-                )
-                return total + (hours * 60 + minutes)
-              }
-              return total
-            }, 0)
-
-            const totalHours = Math.floor(totalWorkTime / 60)
-            const totalMinutes = totalWorkTime % 60
+            const totalWorkTime = calculateTotalWorkTime(completedRecords)
             setWorkTime({
-              total: `${totalHours}時間${totalMinutes}分`,
+              total: totalWorkTime,
               name: staffData.name
             })
           }
@@ -226,14 +236,23 @@ function AttendanceContent() {
           // 退勤成功時のアラート
           alert(`${time}に退勤しました`)
 
-          // 勤務時間の計算と表示
-          if (latestRecord) {
-            const workTimeStr = calculateWorkTime(latestRecord.clock_in, now.toISOString())
+          // 本日の全記録を取得して勤務時間を再計算
+          const today = new Date().toISOString().split('T')[0]
+          const { data: todayRecords } = await supabase
+            .from('attendance')
+            .select('*')
+            .eq('staff_id', staff.id)
+            .gte('clock_in', today)
+            .order('clock_in', { ascending: true })
+
+          if (todayRecords) {
+            const completedRecords = todayRecords.filter(record => record.clock_out)
+            const totalWorkTime = calculateTotalWorkTime(completedRecords)
             setWorkTime({
-              total: workTimeStr,
+              total: totalWorkTime,
               name: staff.name
             })
-            alert(`${staff.name}さんの本日の勤務時間は${workTimeStr}です`)
+            alert(`${staff.name}さんの本日の合計勤務時間は${totalWorkTime}です`)
           }
       }
 
@@ -264,6 +283,9 @@ function AttendanceContent() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>{staff.name}さんの出退勤</h1>
+        <Link href="/" className={styles.backButton}>
+          トップへ戻る
+        </Link>
       </div>
 
       {error && (
