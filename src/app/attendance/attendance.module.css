@@ -1,0 +1,120 @@
+.container {
+  padding: 1rem;
+  max-width: 768px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--gray-alpha-200);
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 1rem;
+}
+
+.actionButtons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gray-alpha-100);
+  border-radius: 12px;
+}
+
+.button {
+  padding: 1rem;
+  border-radius: 8px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  transition: transform 0.2s ease;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.buttonPrimary {
+  composes: button;
+  background-color: #3b82f6;
+}
+
+.buttonDanger {
+  composes: button;
+  background-color: #ef4444;
+}
+
+.buttonSecondary {
+  composes: button;
+  background-color: #6b7280;
+}
+
+.recordList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--gray-alpha-100);
+  border-radius: 12px;
+}
+
+.recordItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--gray-alpha-200);
+  border-radius: 6px;
+}
+
+.recordTime {
+  font-family: var(--font-geist-mono);
+  font-size: 1.1rem;
+  color: var(--foreground);
+}
+
+.recordType {
+  color: var(--foreground);
+  font-size: 0.9rem;
+}
+
+/* タッチデバイス用のスタイル */
+@media (hover: none) and (pointer: coarse) {
+  .button {
+    min-height: 64px;
+    font-size: 1.2rem;
+  }
+
+  .actionButtons {
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .recordItem {
+    padding: 1rem;
+  }
+} 
