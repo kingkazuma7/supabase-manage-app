@@ -126,20 +126,24 @@
 
 .record {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--gray-alpha-200);
-  transition: background-color 0.2s;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--background-secondary);
+  border-radius: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.recordDate {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.recordTime {
   font-size: 1.2rem;
-}
-
-.record:hover {
-  background-color: var(--gray-alpha-50);
-}
-
-.record:last-child {
-  border-bottom: none;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .record span:first-child {

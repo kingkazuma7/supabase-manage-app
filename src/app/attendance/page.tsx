@@ -21,14 +21,14 @@ type Staff = {
 /**
  * 勤怠記録の型定義
  * @typedef {Object} AttendanceRecord
- * @property {string} time - 記録時間（HH:mm形式）
  * @property {string} date - 記録日付（YYYY/MM/DD形式）
- * @property {'出勤' | '退勤' | '休憩開始' | '休憩終了'} type - 記録タイプ
+ * @property {string} clockIn - 出勤時間（HH:mm形式）
+ * @property {string | null} clockOut - 退勤時間（HH:mm形式）
  */
 type AttendanceRecord = {
-  time: string
-  date: string
-  type: '出勤' | '退勤' | '休憩開始' | '休憩終了'
+  date: string;
+  clockIn: string;
+  clockOut: string | null;
 }
 
 /**
@@ -174,17 +174,40 @@ function AttendanceContent() {
           setIsTodayCompleted(todayCompleted)
           
           // データ整形
-          const formattedRecords = attendanceData.map(record => ({
-            time: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
+          const formattedRecords = attendanceData.reduce<AttendanceRecord[]>((acc, record) => {
+            const date = new Date(record.clock_in).toLocaleDateString('ja-JP');
+            const time = new Date(record.clock_in).toLocaleTimeString('ja-JP', {
               hour: '2-digit',
               minute: '2-digit',
               hour12: false
-            }).slice(0, 5),
-            date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
-            type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
-          }))
+            }).slice(0, 5);
+
+            const existingRecord = acc.find(r => r.date === date);
+            if (existingRecord) {
+              if (record.clock_out) {
+                existingRecord.clockOut = new Date(record.clock_out).toLocaleTimeString('ja-JP', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                }).slice(0, 5);
+              }
+            } else {
+              acc.push({
+                date,
+                clockIn: time,
+                clockOut: record.clock_out 
+                  ? new Date(record.clock_out).toLocaleTimeString('ja-JP', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    }).slice(0, 5)
+                  : null
+              });
+            }
+            return acc;
+          }, []);
           
-          setRecords(formattedRecords)
+          setRecords(formattedRecords);
           
           // 有効な勤務記録を抽出
           const validRecords = attendanceData.filter(record => 
@@ -330,13 +353,17 @@ function AttendanceContent() {
       
       if (updatedRecords) {
         setRecords(updatedRecords.map(record => ({
-          time: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
+          date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
+          clockIn: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false
           }).slice(0, 5),
-          date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
-          type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
+          clockOut: record.clock_out ? new Date(record.clock_out).toLocaleTimeString('ja-JP', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).slice(0, 5) : null
         })))
         
         setStatus({
@@ -433,9 +460,9 @@ function AttendanceContent() {
         {records.length > 0 ? (
           records.map((record, i) => (
             <div key={i} className={styles.record}>
-              <span>{record.date} {record.time}</span>
-              <span className={record.type === '出勤' ? styles.clockIn : styles.clockOut}>
-                {record.type}
+              <span className={styles.recordDate}>{record.date}</span>
+              <span className={styles.recordTime}>
+                {record.clockIn} - {record.clockOut || '退勤未記録'}
               </span>
             </div>
           ))
@@ -455,7 +482,7 @@ function AttendanceContent() {
         <button
           className={styles.buttonDanger}
           onClick={() => handleAttendance('退勤')}
-          disabled={status.status === '退勤済み' || isTodayCompleted}
+          disabled={status.status === '退勤済み' || isTodayCompleted || !status.lastClockIn}
         >
           退勤
         </button>
