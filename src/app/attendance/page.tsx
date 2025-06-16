@@ -481,8 +481,8 @@ function AttendanceContent() {
       </div>
 
       {workTime && (
-        <div className={styles.workTimeDisplay}>
-          <h2>本日の勤務概要</h2>
+        <div className={styles.workTime}>
+          <h2>本日の勤務時間</h2>
           <p>{workTime.name}さん</p>
           <p>勤務時間: {workTime.total}</p>
           <p>出勤: {workTime.clockIn}</p>
@@ -491,12 +491,27 @@ function AttendanceContent() {
       )}
 
       {monthlyTotal && (
-        <div className={styles.monthlySummary}>
-          <h2>{new Date().getMonth() + 1}月累計</h2>
-          <p>総勤務時間: {monthlyTotal.hours}時間{monthlyTotal.minutes}分</p>
+        <div className={styles.monthlyTotal}>
+          当月合計: {(() => {
+            const totalMinutes = records.reduce((total, record) => {
+              if (record.clockOut && record.originalClockIn && record.originalClockOut) {
+                const time = calculateWorkTimeForPeriod(
+                  record.originalClockIn,
+                  record.originalClockOut,
+                  new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                  new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999)
+                );
+                const [hours, minutes] = time.split(':').map(Number);
+                return total + hours * 60 + minutes;
+              }
+              return total;
+            }, 0);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+          })()}
         </div>
       )}
-
 
       <div className={styles.records}>
         <h2>{new Date().getMonth() + 1}月の記録</h2>
