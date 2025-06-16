@@ -7,18 +7,38 @@ import styles from './attendance.module.css'
 import Link from 'next/link'
 import { insertAndValidateTestData, deleteTestData } from './testData'
 
-// 型定義
+/**
+ * スタッフ情報の型定義
+ * @typedef {Object} Staff
+ * @property {string} id - スタッフID
+ * @property {string} name - スタッフ名
+ */
 type Staff = {
   id: string
   name: string
 }
 
+/**
+ * 勤怠記録の型定義
+ * @typedef {Object} AttendanceRecord
+ * @property {string} time - 記録時間（HH:mm形式）
+ * @property {string} date - 記録日付（YYYY/MM/DD形式）
+ * @property {'出勤' | '退勤' | '休憩開始' | '休憩終了'} type - 記録タイプ
+ */
 type AttendanceRecord = {
   time: string
   date: string
   type: '出勤' | '退勤' | '休憩開始' | '休憩終了'
 }
 
+/**
+ * 勤務時間情報の型定義
+ * @typedef {Object} WorkTime
+ * @property {string} total - 総勤務時間（HH:mm形式）
+ * @property {string} name - スタッフ名
+ * @property {string} clockIn - 出勤時間
+ * @property {string} clockOut - 退勤時間
+ */
 type WorkTime = {
   total: string
   name: string
@@ -26,13 +46,25 @@ type WorkTime = {
   clockOut: string
 }
 
+/**
+ * 勤怠ステータスの型定義
+ * @typedef {Object} AttendanceStatus
+ * @property {boolean} isWorking - 勤務中かどうか
+ * @property {string | null} lastClockIn - 最終出勤時間
+ * @property {string | null} lastClockOut - 最終退勤時間
+ */
 type AttendanceStatus = {
   isWorking: boolean
   lastClockIn: string | null
   lastClockOut: string | null
 }
 
-// 勤務時間計算関数
+/**
+ * 勤務時間を計算する
+ * @param {string} clockIn - 出勤時間（ISO形式）
+ * @param {string} clockOut - 退勤時間（ISO形式）
+ * @returns {string} 勤務時間（HH:mm形式）
+ */
 const calculateWorkTime = (clockIn: string, clockOut: string) => {
   const start = new Date(clockIn)
   const end = new Date(clockOut)
@@ -43,7 +75,11 @@ const calculateWorkTime = (clockIn: string, clockOut: string) => {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 }
 
-// データ整合性チェック
+/**
+ * 勤怠記録の整合性をチェックする
+ * @param {Array<{clock_in: string; clock_out: string | null}>} records - 勤怠記録の配列
+ * @returns {boolean} 整合性が取れている場合はtrue
+ */
 const validateRecords = (records: { clock_in: string; clock_out: string | null }[]) => {
   if (records.length === 0) return true
   
@@ -57,6 +93,10 @@ const validateRecords = (records: { clock_in: string; clock_out: string | null }
   return true
 }
 
+/**
+ * 勤怠管理のメインコンポーネント
+ * @returns {JSX.Element} 勤怠管理画面
+ */
 function AttendanceContent() {
   const searchParams = useSearchParams()
   const staffId = searchParams.get('staffId')
@@ -69,6 +109,7 @@ function AttendanceContent() {
     lastClockOut: null
   })
   const [error, setError] = useState<string | null>(null)
+  const [isTodayCompleted, setIsTodayCompleted] = useState(false)
 
   // データ取得
   useEffect(() => {
@@ -97,6 +138,12 @@ function AttendanceContent() {
         setStaff(staffData)
         
         if (attendanceData) {
+          // 本日の出退勤完了チェック
+          const todayCompleted = attendanceData.some(record => 
+            new Date(record.clock_in).toISOString().split('T')[0] === today && record.clock_out
+          )
+          setIsTodayCompleted(todayCompleted)
+          
           // データ整形
           const formattedRecords = attendanceData.map(record => ({
             time: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
@@ -171,8 +218,13 @@ function AttendanceContent() {
       
       // バリデーション
       if (type === '出勤') {
-        if (existingRecords?.some(r => !r.clock_out)) {
-          throw new Error('既に出勤済みです')
+        // 本日の出勤記録をチェック
+        const todayClockIn = existingRecords?.find(r => 
+          new Date(r.clock_in).toISOString().split('T')[0] === today
+        )
+        
+        if (todayClockIn) {
+          throw new Error('本日は既に出勤済みです')
         }
         
         const { error } = await supabase
@@ -185,22 +237,37 @@ function AttendanceContent() {
         if (error) throw error
       } 
       else if (type === '退勤') {
-        const lastClockIn = existingRecords?.find(r => !r.clock_out)
-        if (!lastClockIn) throw new Error('出勤記録がありません')
+        // 本日の出勤記録をチェック
+        const todayClockIn = existingRecords?.find(r => 
+          new Date(r.clock_in).toISOString().split('T')[0] === today && !r.clock_out
+        )
+        
+        if (!todayClockIn) {
+          throw new Error('本日の出勤記録がありません')
+        }
+        
+        // 本日の退勤記録をチェック
+        const todayClockOut = existingRecords?.find(r => 
+          new Date(r.clock_in).toISOString().split('T')[0] === today && r.clock_out
+        )
+        
+        if (todayClockOut) {
+          throw new Error('本日は既に退勤済みです')
+        }
         
         const { error } = await supabase
           .from('attendance')
           .update({ clock_out: now.toISOString() })
-          .eq('id', lastClockIn.id)
+          .eq('id', todayClockIn.id)
           
         if (error) throw error
         
         // 勤務時間計算
-        const total = calculateWorkTime(lastClockIn.clock_in, now.toISOString())
+        const total = calculateWorkTime(todayClockIn.clock_in, now.toISOString())
         setWorkTime({
           total,
           name: staff.name,
-          clockIn: new Date(lastClockIn.clock_in).toLocaleString('ja-JP'),
+          clockIn: new Date(todayClockIn.clock_in).toLocaleString('ja-JP'),
           clockOut: now.toLocaleString('ja-JP')
         })
       }
@@ -217,7 +284,7 @@ function AttendanceContent() {
         setRecords(updatedRecords.map(record => ({
           time: new Date(record.clock_in).toLocaleTimeString('ja-JP'),
           date: new Date(record.clock_in).toLocaleDateString('ja-JP'),
-          type: record.clock_out ? '退勤' : '出勤'
+          type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
         })))
         
         setStatus({
@@ -324,14 +391,14 @@ function AttendanceContent() {
         <button
           className={styles.buttonPrimary}
           onClick={() => handleAttendance('出勤')}
-          disabled={status.isWorking}
+          disabled={status.isWorking || isTodayCompleted}
         >
           出勤
         </button>
         <button
           className={styles.buttonDanger}
           onClick={() => handleAttendance('退勤')}
-          disabled={!status.isWorking}
+          disabled={!status.isWorking || isTodayCompleted}
         >
           退勤
         </button>
@@ -357,6 +424,10 @@ function AttendanceContent() {
   )
 }
 
+/**
+ * 勤怠管理ページのルートコンポーネント
+ * @returns {JSX.Element} Suspenseでラップされた勤怠管理画面
+ */
 export default function AttendancePage() {
   return (
     <Suspense fallback={<div>読み込み中...</div>}>
