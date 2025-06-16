@@ -5,7 +5,7 @@ import { Suspense, useState, useEffect } from 'react'
 import { createClient } from '../utils/supabase/client'
 import styles from './attendance.module.css'
 import Link from 'next/link'
-import { insertAndValidateTestData, deleteTestData } from './testData'
+import { insertAndValidateTestData, deleteTestData, testPatterns } from './testData'
 
 /**
  * スタッフ情報の型定義
@@ -68,10 +68,32 @@ type AttendanceStatus = {
 const calculateWorkTime = (clockIn: string, clockOut: string) => {
   const start = new Date(clockIn)
   const end = new Date(clockOut)
-  const minutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60))
   
+  // 日付跨ぎの場合
+  if (start.toDateString() !== end.toDateString()) {
+    // 出勤日の24時までの時間
+    const midnight = new Date(start)
+    midnight.setHours(24, 0, 0, 0)
+    const day1Minutes = Math.floor((midnight.getTime() - start.getTime()) / (1000 * 60))
+    
+    // 退勤日の0時からの時間
+    const day2Start = new Date(end)
+    day2Start.setHours(0, 0, 0, 0)
+    const day2Minutes = Math.floor((end.getTime() - day2Start.getTime()) / (1000 * 60))
+    
+    // 合計時間（最大24時間まで）
+    const totalMinutes = Math.min(day1Minutes + day2Minutes, 24 * 60)
+    const hours = Math.floor(totalMinutes / 60)
+    const mins = totalMinutes % 60
+    
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+  }
+  
+  // 同じ日の場合は通常計算
+  const minutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60))
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
+  
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
 }
 
@@ -406,12 +428,19 @@ function AttendanceContent() {
 
       {staff && (
         <div className={styles.testButtons}>
-          <button 
-            className={styles.buttonTest}
-            onClick={() => insertAndValidateTestData(staff.id)}
-          >
-            テストデータ挿入
-          </button>
+          <div className={styles.testPatterns}>
+            <h3>テストパターン</h3>
+            {testPatterns.map(pattern => (
+              <button 
+                key={pattern.name}
+                className={styles.buttonTest}
+                onClick={() => insertAndValidateTestData(staff.id, pattern.name)}
+              >
+                {pattern.name}
+                <span className={styles.patternDescription}>{pattern.description}</span>
+              </button>
+            ))}
+          </div>
           <button 
             className={styles.buttonTest}
             onClick={() => deleteTestData(staff.id)}
