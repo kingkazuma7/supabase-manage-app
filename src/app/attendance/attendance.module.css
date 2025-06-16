@@ -117,4 +117,20 @@
   .recordItem {
     padding: 1rem;
   }
+}
+
+.error {
+  color: #dc2626;
+  background-color: #fee2e2;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-size: 1.1rem;
 } 

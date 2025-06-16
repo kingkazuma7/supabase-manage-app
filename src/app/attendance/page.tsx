@@ -28,46 +28,111 @@ type AttendanceRecord = {
 }
 
 /**
+ * 勤務時間の型定義
+ * @typedef {Object} WorkTime
+ * @property {string} total - 勤務時間の合計（例：8時間30分）
+ * @property {string} name - スタッフの名前
+ */
+type WorkTime = {
+  total: string
+  name: string
+}
+
+/**
  * 出退勤管理のメインコンポーネント
  * @returns {JSX.Element} 出退勤管理画面
  */
 function AttendanceContent() {
-  // 1. URLパラメータの取得
   const searchParams = useSearchParams()
   const staffId = searchParams.get('staffId')
-  console.log(staffId);
-  
-
-  // 2. 状態管理の設定
   const [staff, setStaff] = useState<Staff | null>(null)
   const [loading, setLoading] = useState(true)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [workTime, setWorkTime] = useState<WorkTime | null>(null)
 
   /**
-   * スタッフ情報を取得する
+   * 勤務時間を計算する
+   * @param {string} clockIn - 出勤時間（ISO形式）
+   * @param {string} clockOut - 退勤時間（ISO形式）
+   * @returns {string} 勤務時間（例：8時間30分）
+   */
+  const calculateWorkTime = (clockIn: string, clockOut: string): string => {
+    const start = new Date(clockIn)
+    const end = new Date(clockOut)
+    const diff = end.getTime() - start.getTime()
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    return `${hours}時間${minutes}分`
+  }
+
+  /**
+   * 初期データを取得する
    * @returns {Promise<void>}
    */
   useEffect(() => {
-    const fetchStaff = async () => {
+    const fetchInitialData = async () => {
       if (!staffId) return
       
       try {
         const supabase = createClient()
-        const { data } = await supabase
+        const { data: staffData } = await supabase
           .from('staff')
           .select('*')
           .eq('id', staffId)
           .single()
 
-        setStaff(data)
+        const today = new Date().toISOString().split('T')[0]
+        const { data: recordsData } = await supabase
+          .from('attendance')
+          .select('*')
+          .eq('staff_id', staffId)
+          .gte('clock_in', today)
+          .order('clock_in', { ascending: true })
+
+        setStaff(staffData)
+        if (recordsData) {
+          const formattedRecords = recordsData.map(record => ({
+            time: new Date(record.clock_in).toLocaleTimeString('ja-JP', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false
+            }),
+            type: record.clock_out ? ('退勤' as const) : ('出勤' as const)
+          }))
+          setRecords(formattedRecords)
+
+          // 勤務時間の計算
+          const completedRecords = recordsData.filter(record => record.clock_out)
+          if (completedRecords.length > 0) {
+            const totalWorkTime = completedRecords.reduce((total, record) => {
+              if (record.clock_out) {
+                const workTime = calculateWorkTime(record.clock_in, record.clock_out)
+                const [hours, minutes] = workTime.split('時間').map(part => 
+                  parseInt(part.replace('分', ''))
+                )
+                return total + (hours * 60 + minutes)
+              }
+              return total
+            }, 0)
+
+            const totalHours = Math.floor(totalWorkTime / 60)
+            const totalMinutes = totalWorkTime % 60
+            setWorkTime({
+              total: `${totalHours}時間${totalMinutes}分`,
+              name: staffData.name
+            })
+          }
+        }
       } catch (err) {
-        console.error('Error fetching staff:', err)
+        console.error('初期データの取得に失敗:', err)
+        setError('データの取得に失敗しました')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchStaff()
+    fetchInitialData()
   }, [staffId])
 
   /**
@@ -77,7 +142,6 @@ function AttendanceContent() {
    */
   const handleAttendance = async (type: AttendanceRecord['type']) => {
     try {
-      // 1. 現在時刻の取得
       const now = new Date()
       const time = now.toLocaleTimeString('ja-JP', {
         hour: '2-digit',
@@ -85,58 +149,115 @@ function AttendanceContent() {
         hour12: false
       })
 
-      // 2. バリデーション
       if (!staff) {
-        throw new Error('スタッフ情報が見つかりません');
+        throw new Error('スタッフ情報が見つかりません')
       }
-
-      // 3. 出退勤記録の保存
+      
       const supabase = createClient()
       
+      // 本日の最新の記録を取得
+      const { data: latestRecords, error: fetchError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('staff_id', staff.id)
+        .order('clock_in', { ascending: false })
+        .limit(1)
+
+      if (fetchError) {
+        console.error('最新の記録取得に失敗:', fetchError)
+        throw new Error('最新の記録取得に失敗しました')
+      }
+      
+      const latestRecord = latestRecords?.[0]
+
+      // 出勤・退勤の順序チェック
+      if (type === '出勤' && latestRecord && !latestRecord.clock_out) {
+        throw new Error('前回の出勤が退勤されていません')
+      }
+
+      if (type === '退勤' && (!latestRecord || latestRecord.clock_out)) {
+        throw new Error('出勤記録が見つかりません')
+      }
+
       if (type === '出勤') {
-        // 出勤時は新規レコードを作成
         const { error } = await supabase
           .from('attendance')
           .insert({
             staff_id: staff.id,
             clock_in: now.toISOString()
           })
-          .select() // 保存後のレコードを取得
+          .select()
           
           if (error) {
-            throw new Error('記録の保存に失敗しました');
+            console.error('出勤記録の保存に失敗:', {
+              error,
+              staffId: staff.id,
+              timestamp: now.toISOString(),
+              type: '出勤'
+            })
+            throw new Error(`出勤記録の保存に失敗しました: ${error.message}`)
           }
+
+          // 出勤成功時のアラート
+          alert(`${time}に出勤しました`)
       } else if (type === '退勤') {
-        // 退勤時は最新の出勤レコードを更新
         const { error } = await supabase
           .from('attendance')
           .update({
             clock_out: now.toISOString()
           })
           .eq('staff_id', staff.id)
-          .is('clock_out', null) // 退勤時間が未設定のレコードを更新
-          .order('clock_in', { ascending: false }) // 出勤時間の降順で最新のレコードを取得
-          .limit(1) // 最新のレコードを1件取得
+          .is('clock_out', null)
+          .order('clock_in', { ascending: false })
+          .limit(1)
           .select()
           
           if (error) {
-            throw new Error('記録の更新に失敗しました');
+            console.error('退勤記録の更新に失敗:', {
+              error,
+              staffId: staff.id,
+              timestamp: now.toISOString(),
+              type: '退勤',
+              latestRecord
+            })
+            throw new Error(`退勤記録の更新に失敗しました: ${error.message}`)
+          }
+
+          // 退勤成功時のアラート
+          alert(`${time}に退勤しました`)
+
+          // 勤務時間の計算と表示
+          if (latestRecord) {
+            const workTimeStr = calculateWorkTime(latestRecord.clock_in, now.toISOString())
+            setWorkTime({
+              total: workTimeStr,
+              name: staff.name
+            })
+            alert(`${staff.name}さんの本日の勤務時間は${workTimeStr}です`)
           }
       }
 
-      // 4. ローカルの状態更新
       setRecords(prev => [...prev, { time, type }])
     } catch (error) {
-      console.log('勤怠管理レコードの保存に失敗しました', error); 
+      setError(error instanceof Error ? error.message : '予期せぬエラーが発生しました')
+      console.error('勤怠管理レコードの保存に失敗しました', error)
     }
   }
 
   if (loading) {
-    return <div className={styles.container}>読み込み中...</div>
+    return (
+      <div className={styles.container}>
+        <div className={styles.loading}>読み込み中...</div>
+      </div>
+    )
   }
 
   if (!staff) {
-    return <div className={styles.container}>スタッフ情報が見つかりません</div>
+    return (
+      <div className={styles.container}>
+        <div className={styles.error}>スタッフ情報が見つかりません</div>
+      </div>
+    )
   }
 
   return (
@@ -144,6 +265,19 @@ function AttendanceContent() {
       <div className={styles.header}>
         <h1 className={styles.title}>{staff.name}さんの出退勤</h1>
       </div>
+
+      {error && (
+        <div className={styles.error}>
+          {error}
+        </div>
+      )}
+
+      {workTime && (
+        <div className={styles.workTime}>
+          <h2 className={styles.subtitle}>本日の勤務時間</h2>
+          <p>{workTime.name}さん: {workTime.total}</p>
+        </div>
+      )}
 
       <div className={styles.actionButtons}>
         <button 
@@ -174,18 +308,18 @@ function AttendanceContent() {
 
       <div className={styles.recordList}>
         <h2 className={styles.subtitle}>本日の記録</h2>
-        {records.length === 0 ? (
-          <div className={styles.recordItem}>
-            <span className={styles.recordTime}>--:--</span>
-            <span className={styles.recordType}>記録なし</span>
-          </div>
-        ) : (
+        {records.length > 0 ? (
           records.map((record, index) => (
             <div key={index} className={styles.recordItem}>
               <span className={styles.recordTime}>{record.time}</span>
               <span className={styles.recordType}>{record.type}</span>
             </div>
           ))
+        ) : (
+          <div className={styles.recordItem}>
+            <span className={styles.recordTime}>--:--</span>
+            <span className={styles.recordType}>記録なし</span>
+          </div>
         )}
       </div>
     </div>
