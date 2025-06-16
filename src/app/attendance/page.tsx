@@ -85,8 +85,8 @@ const calculateWorkTime = (clockIn: string, clockOut: string) => {
     day2Start.setHours(0, 0, 0, 0)
     const day2Minutes = Math.floor((end.getTime() - day2Start.getTime()) / (1000 * 60))
     
-    // 合計時間（最大24時間まで）
-    const totalMinutes = Math.min(day1Minutes + day2Minutes, 24 * 60)
+    // 合計時間（24時間を超える場合も正しく計算）
+    const totalMinutes = day1Minutes + day2Minutes
     const hours = Math.floor(totalMinutes / 60)
     const mins = totalMinutes % 60
     
