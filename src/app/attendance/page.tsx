@@ -516,27 +516,43 @@ function AttendanceContent() {
       <div className={styles.records}>
         <h2>{new Date().getMonth() + 1}月の記録</h2>
         {records.length > 0 ? (
-          <>
-            {records.map((record, i) => (
-              <div key={i} className={styles.record}>
-                <span className={styles.recordDate}>{record.date}</span>
-                <span className={styles.recordTime}>
-                  {record.clockIn} - {record.clockOut || '退勤未記録'}
-                  {record.isCrossDay && (
-                    <span className={styles.crossDayBadge}>日付跨ぎ</span>
-                  )}
-                  {record.clockOut && record.originalClockIn && record.originalClockOut && (
-                    <span className={styles.calculatedWorkTime}>
-                      勤務時間: {calculateWorkTime(
-                        record.originalClockIn,
-                        record.originalClockOut
-                      )}
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))}
-          </>
+          <table className={styles.recordsTable}>
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>開始</th>
+                <th>終了</th>
+                <th>休憩</th>
+                <th>作業時間</th>
+              </tr>
+            </thead>
+            <tbody>
+              {records.map((record, i) => (
+                <tr key={i} className={styles.recordRow}>
+                  <td className={styles.recordDate}>
+                    {(() => {
+                      const date = new Date(record.originalClockIn);
+                      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                      const day = date.getDate().toString().padStart(2, '0');
+                      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+                      const weekday = weekdays[date.getDay()];
+                      return `${month}/${day}（${weekday}）`;
+                    })()}
+                  </td>
+                  <td className={styles.recordTime}>{record.clockIn}</td>
+                  <td className={styles.recordTime}>{record.clockOut || '退勤未記録'}</td>
+                  <td className={styles.recordBreak}></td>
+                  <td className={styles.recordWorkTime}>
+                    {record.clockOut && record.originalClockIn && record.originalClockOut ? (
+                      calculateWorkTime(record.originalClockIn, record.originalClockOut)
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : (
           <p>記録がありません</p>
         )}
@@ -567,7 +583,7 @@ function AttendanceContent() {
               <button 
                 key={pattern.name}
                 className={styles.buttonTest}
-                onClick={() => insertAndValidateTestData(staff.id, pattern.name, createClient())}
+                onClick={() => insertAndValidateTestData(staff.id, pattern.name)}
               >
                 {pattern.name}
                 <span className={styles.patternDescription}>{pattern.description}</span>
@@ -576,7 +592,7 @@ function AttendanceContent() {
           </div>
           <button 
             className={styles.buttonTest}
-            onClick={() => deleteTestData(staff.id, createClient())}
+            onClick={() => deleteTestData(staff.id)}
           >
             テストデータ削除（本日分）
           </button>

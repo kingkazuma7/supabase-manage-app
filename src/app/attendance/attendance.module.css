@@ -113,16 +113,65 @@
   margin-bottom: 0.5rem;
 }
 
+.recordsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: var(--background-secondary);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.recordsTable thead {
+  background: var(--primary-alpha-100);
+}
+
+.recordsTable th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--foreground);
+  border-bottom: 2px solid var(--primary-alpha-200);
+}
+
+.recordsTable td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.recordsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.recordsTable tr:hover {
+  background: var(--background-hover);
+}
+
+.recordRow {
+  transition: background-color 0.2s ease;
+}
+
 .recordDate {
-  font-size: 1rem;
-  color: var(--text-secondary);
   font-weight: 500;
+  color: var(--text-secondary);
+  font-family: var(--font-geist-mono);
 }
 
 .recordTime {
-  font-size: 1.2rem;
-  color: var(--text-primary);
   font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-geist-mono);
+}
+
+.recordBreak {
+  color: var(--text-secondary);
+}
+
+.recordWorkTime {
+  font-weight: 600;
+  color: var(--primary);
+  font-family: var(--font-geist-mono);
 }
 
 .record span:first-child {
