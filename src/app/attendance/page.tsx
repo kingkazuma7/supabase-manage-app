@@ -490,31 +490,30 @@ function AttendanceContent() {
         </div>
       )}
 
-      {monthlyTotal && (
-        <div className={styles.monthlyTotal}>
-          当月合計: {(() => {
-            const totalMinutes = records.reduce((total, record) => {
-              if (record.clockOut && record.originalClockIn && record.originalClockOut) {
-                const time = calculateWorkTimeForPeriod(
-                  record.originalClockIn,
-                  record.originalClockOut,
-                  new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                  new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999)
-                );
-                const [hours, minutes] = time.split(':').map(Number);
-                return total + hours * 60 + minutes;
-              }
-              return total;
-            }, 0);
-            const hours = Math.floor(totalMinutes / 60);
-            const minutes = totalMinutes % 60;
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-          })()}
-        </div>
-      )}
-
       <div className={styles.records}>
         <h2>{new Date().getMonth() + 1}月の記録</h2>
+        {monthlyTotal && (
+          <div className={styles.monthlyTotalInline}>
+            <strong>{new Date().getMonth() + 1}月合計勤務時間: {(() => {
+              const totalMinutes = records.reduce((total, record) => {
+                if (record.clockOut && record.originalClockIn && record.originalClockOut) {
+                  const time = calculateWorkTimeForPeriod(
+                    record.originalClockIn,
+                    record.originalClockOut,
+                    new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                    new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999)
+                  );
+                  const [hours, minutes] = time.split(':').map(Number);
+                  return total + hours * 60 + minutes;
+                }
+                return total;
+              }, 0);
+              const hours = Math.floor(totalMinutes / 60);
+              const minutes = totalMinutes % 60;
+              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            })()}</strong>
+          </div>
+        )}
         {records.length > 0 ? (
           <table className={styles.recordsTable}>
             <thead>
