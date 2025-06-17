@@ -181,6 +181,10 @@ function AttendanceContent() {
   const [error, setError] = useState<string | null>(null)
   const [isTodayCompleted, setIsTodayCompleted] = useState(false)
   const [monthlyTotal, setMonthlyTotal] = useState<MonthlyTotal | null>(null); // 月次合計勤務時間
+  // 追加: 表示中の年月
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth()); // 0-indexed
 
   const fetchData = useCallback(async () => {
     if (!staffId) return;
@@ -326,6 +330,32 @@ function AttendanceContent() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // 表示月のレコードのみ抽出
+  const filteredRecords = records.filter(record => {
+    const date = new Date(record.originalClockIn);
+    return date.getFullYear() === viewYear && date.getMonth() === viewMonth;
+  });
+
+  // 表示月の合計勤務時間
+  const filteredMonthlyTotal = (() => {
+    const totalMinutes = filteredRecords.reduce((total, record) => {
+      if (record.clockOut && record.originalClockIn && record.originalClockOut) {
+        const time = calculateWorkTimeForPeriod(
+          record.originalClockIn,
+          record.originalClockOut,
+          new Date(viewYear, viewMonth, 1),
+          new Date(viewYear, viewMonth + 1, 0, 23, 59, 59, 999)
+        );
+        const [hours, minutes] = time.split(':').map(Number);
+        return total + hours * 60 + minutes;
+      }
+      return total;
+    }, 0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  })();
 
   // 出退勤処理
   const handleAttendance = async (type: '出勤' | '退勤') => {
@@ -491,30 +521,41 @@ function AttendanceContent() {
       )}
 
       <div className={styles.records}>
-        <h2>{new Date().getMonth() + 1}月の記録</h2>
-        {monthlyTotal && (
-          <div className={styles.monthlyTotalInline}>
-            <strong>{new Date().getMonth() + 1}月合計勤務時間: {(() => {
-              const totalMinutes = records.reduce((total, record) => {
-                if (record.clockOut && record.originalClockIn && record.originalClockOut) {
-                  const time = calculateWorkTimeForPeriod(
-                    record.originalClockIn,
-                    record.originalClockOut,
-                    new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                    new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999)
-                  );
-                  const [hours, minutes] = time.split(':').map(Number);
-                  return total + hours * 60 + minutes;
-                }
-                return total;
-              }, 0);
-              const hours = Math.floor(totalMinutes / 60);
-              const minutes = totalMinutes % 60;
-              return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-            })()}</strong>
-          </div>
-        )}
-        {records.length > 0 ? (
+        <div className={styles.monthSwitchRow}>
+          <button
+            className={styles.monthArrow}
+            onClick={() => {
+              if (viewMonth === 0) {
+                setViewYear(viewYear - 1);
+                setViewMonth(11);
+              } else {
+                setViewMonth(viewMonth - 1);
+              }
+            }}
+            aria-label="前の月"
+          >
+            &lt;
+          </button>
+          <h2>{viewYear}年{viewMonth + 1}月の記録</h2>
+          <button
+            className={styles.monthArrow}
+            onClick={() => {
+              if (viewMonth === 11) {
+                setViewYear(viewYear + 1);
+                setViewMonth(0);
+              } else {
+                setViewMonth(viewMonth + 1);
+              }
+            }}
+            aria-label="次の月"
+          >
+            &gt;
+          </button>
+        </div>
+        <div className={styles.monthlyTotalInline}>
+          <strong>{viewMonth + 1}月合計勤務時間: {filteredMonthlyTotal}</strong>
+        </div>
+        {filteredRecords.length > 0 ? (
           <table className={styles.recordsTable}>
             <thead>
               <tr>
@@ -526,7 +567,7 @@ function AttendanceContent() {
               </tr>
             </thead>
             <tbody>
-              {records.map((record, i) => (
+              {filteredRecords.map((record, i) => (
                 <tr key={i} className={styles.recordRow}>
                   <td className={styles.recordDate}>
                     {(() => {
