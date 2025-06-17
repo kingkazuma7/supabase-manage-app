@@ -173,6 +173,102 @@ const fullMonthPattern: TestPattern = {
 }
 
 /**
+ * 3ヶ月分パターン（前月・当月・翌月、月跨ぎ含む、各月最大160h）
+ */
+const threeMonthPattern: TestPattern = {
+  name: '3ヶ月分（跨ぎ含む）',
+  description: '前月・当月・翌月の3ヶ月分＋月跨ぎ勤務を含み、各月最大160h',
+  generate: () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-indexed
+    const data = [];
+    const maxMinutes = 160 * 60; // 160h
+
+    // 前月、当月、翌月の情報
+    const months = [currentMonth - 1, currentMonth, currentMonth + 1];
+    const years = [
+      currentMonth === 0 ? currentYear - 1 : currentYear,
+      currentYear,
+      currentMonth === 11 ? currentYear + 1 : currentYear
+    ];
+
+    // 月跨ぎ：前月末21:00〜当月1日2:30
+    const prevMonthLastDay = new Date(years[0], months[0] + 1, 0);
+    const thisMonthFirstDay = new Date(years[1], months[1], 1);
+    data.push({
+      clock_in: new Date(prevMonthLastDay.getFullYear(), prevMonthLastDay.getMonth(), prevMonthLastDay.getDate(), 21, 0, 0).toISOString(),
+      clock_out: new Date(thisMonthFirstDay.getFullYear(), thisMonthFirstDay.getMonth(), thisMonthFirstDay.getDate(), 2, 30, 0).toISOString(),
+      expected_wage: (3 * 1875) + (2.5 * 2000)
+    });
+    // 月跨ぎ：当月末21:00〜翌月1日2:30
+    const thisMonthLastDay = new Date(years[1], months[1] + 1, 0);
+    const nextMonthFirstDay = new Date(years[2], months[2], 1);
+    data.push({
+      clock_in: new Date(thisMonthLastDay.getFullYear(), thisMonthLastDay.getMonth(), thisMonthLastDay.getDate(), 21, 0, 0).toISOString(),
+      clock_out: new Date(nextMonthFirstDay.getFullYear(), nextMonthFirstDay.getMonth(), nextMonthFirstDay.getDate(), 2, 30, 0).toISOString(),
+      expected_wage: (3 * 1875) + (2.5 * 2000)
+    });
+
+    // 各月ごとに最大160hまでデータを追加
+    months.forEach((month, idx) => {
+      const year = years[idx];
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let totalMinutes = 0;
+      for (let day = 1; day <= daysInMonth; day++) {
+        if (totalMinutes >= maxMinutes) break;
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.getDay();
+        let clockIn, clockOut, expectedWage, workMinutes;
+        if (dayOfWeek === 0) {
+          // 日曜：夜勤（3.5h）
+          clockIn = new Date(year, month, day, 20, 0, 0);
+          clockOut = new Date(year, month, day, 23, 30, 0);
+          workMinutes = 3.5 * 60;
+          expectedWage = (2 * 1500) + (1.5 * 1875);
+        } else if (dayOfWeek === 6) {
+          // 土曜：日付跨ぎ（5.5h）
+          const nextDay = new Date(year, month, day + 1);
+          clockIn = new Date(year, month, day, 21, 0, 0);
+          clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
+          workMinutes = 5.5 * 60;
+          expectedWage = (3 * 1875) + (2.5 * 2000);
+        } else {
+          // 平日：通常勤務（9h）
+          clockIn = new Date(year, month, day, 9, 0, 0);
+          clockOut = new Date(year, month, day, 18, 0, 0);
+          workMinutes = 9 * 60;
+          expectedWage = 9 * 1500;
+        }
+        // 追加しても160hを超えない場合のみpush
+        if (totalMinutes + workMinutes <= maxMinutes) {
+          data.push({
+            clock_in: clockIn.toISOString(),
+            clock_out: clockOut.toISOString(),
+            expected_wage: expectedWage
+          });
+          totalMinutes += workMinutes;
+        } else if (totalMinutes < maxMinutes) {
+          // 端数調整：残り分だけ追加（9h, 5.5h, 3.5hのいずれか）
+          const remain = maxMinutes - totalMinutes;
+          // 端数分の勤務時間をclock_outに反映
+          const partialClockOut = new Date(clockIn.getTime() + remain * 60 * 1000);
+          // 給与は1分単位で1500円/60分で計算（深夜割増等は無視、端数は通常時給）
+          const partialWage = Math.round(remain * (1500 / 60));
+          data.push({
+            clock_in: clockIn.toISOString(),
+            clock_out: partialClockOut.toISOString(),
+            expected_wage: partialWage
+          });
+          totalMinutes = maxMinutes;
+        }
+      }
+    });
+    return data;
+  }
+};
+
+/**
  * 利用可能なテストパターン
  */
 export const testPatterns: TestPattern[] = [
@@ -181,7 +277,8 @@ export const testPatterns: TestPattern[] = [
   crossDayPattern,
   multiDayPattern,
   crossMonthPattern,
-  fullMonthPattern
+  fullMonthPattern,
+  threeMonthPattern
 ]
 
 /**
