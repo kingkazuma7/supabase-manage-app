@@ -122,6 +122,57 @@ const crossMonthPattern: TestPattern = {
 }
 
 /**
+ * 1ヶ月分フルフルパターン（様々な勤務パターンを含む1ヶ月分）
+ */
+const fullMonthPattern: TestPattern = {
+  name: '1ヶ月分フルフル',
+  description: '様々な勤務パターンを含む1ヶ月分のデータ',
+  generate: () => {
+    const today = new Date()
+    const currentYear = today.getFullYear()
+    const currentMonth = today.getMonth()
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
+    const data = []
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(currentYear, currentMonth, day)
+      const dayOfWeek = currentDate.getDay() // 0=日曜日, 6=土曜日
+      
+      // 土日は休日勤務（夜勤系）
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        // 日曜日：夜勤（20:00-23:30）
+        if (dayOfWeek === 0) {
+          data.push({
+            clock_in: new Date(currentYear, currentMonth, day, 20, 0, 0).toISOString(),
+            clock_out: new Date(currentYear, currentMonth, day, 23, 30, 0).toISOString(),
+            expected_wage: (2 * 1500) + (1.5 * 1875) // 20:00-22:00, 22:00-23:30
+          })
+        }
+        // 土曜日：日付跨ぎ勤務（21:00-翌日2:30）
+        else {
+          const nextDay = new Date(currentYear, currentMonth, day + 1)
+          data.push({
+            clock_in: new Date(currentYear, currentMonth, day, 21, 0, 0).toISOString(),
+            clock_out: new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0).toISOString(),
+            expected_wage: (3 * 1875) + (2.5 * 2000) // 21:00-24:00, 24:00-02:30
+          })
+        }
+      }
+      // 平日は通常勤務（9:00-18:00）
+      else {
+        data.push({
+          clock_in: new Date(currentYear, currentMonth, day, 9, 0, 0).toISOString(),
+          clock_out: new Date(currentYear, currentMonth, day, 18, 0, 0).toISOString(),
+          expected_wage: 9 * 1500
+        })
+      }
+    }
+    
+    return data
+  }
+}
+
+/**
  * 利用可能なテストパターン
  */
 export const testPatterns: TestPattern[] = [
@@ -129,7 +180,8 @@ export const testPatterns: TestPattern[] = [
   nightPattern,
   crossDayPattern,
   multiDayPattern,
-  crossMonthPattern
+  crossMonthPattern,
+  fullMonthPattern
 ]
 
 /**
