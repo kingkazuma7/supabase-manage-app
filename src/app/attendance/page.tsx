@@ -381,6 +381,8 @@ function AttendanceContent() {
         >
           退勤
         </button>
+        <button className={styles.buttonSecondary}>休憩開始</button>
+        <button className={styles.buttonSecondary}>休憩終了</button>
       </div>
 
       {staff && (

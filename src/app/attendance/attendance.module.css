@@ -473,4 +473,20 @@
 
 .monthArrow:hover {
   background: var(--primary-alpha-200);
-} 
+}
+
+.buttonSecondary {
+  composes: button;
+  background-color: #b2f0c0;
+  color: #217a3b;
+  border: 1px solid #b2f0c0;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.buttonSecondary:hover, .buttonSecondary:focus {
+  background-color: #7be0a6;
+  color: #145a24;
+}
