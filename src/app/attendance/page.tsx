@@ -96,7 +96,6 @@ const calculateWorkTime = (clockIn: string, clockOut: string): string => {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
 
-
 /**
  * 指定された期間 (periodStart - periodEnd) 内の勤務時間を計算する
  * 月をまたぐ勤務でも、指定期間内の時間のみを正確に集計します。
@@ -138,7 +137,6 @@ const getMinutesFromHHMM = (timeString: string): number => {
     return hours * 60 + minutes;
 };
 
-
 /**
  * 勤怠記録の整合性をチェックする
  * 連続した出勤打刻、退勤打刻なしの状態で退勤打刻などを検出します。
@@ -160,6 +158,55 @@ const validateRecords = (records: { clock_in: string; clock_out: string | null }
     }
   }
   return true;
+};
+
+/**
+ * 休憩時間の計算関数
+ * @param {string} breakStart - 休憩開始時間（ISO形式）
+ * @param {string} breakEnd - 休憩終了時間（ISO形式）
+ * @returns {string} 休憩時間（HH:mm形式）
+ */
+const calculateBreakTime = (breakStart: string | null, breakEnd: string | null): string => {
+  if (!breakStart || !breakEnd) return '-';
+  const start = new Date(breakStart);
+  const end = new Date(breakEnd);
+  let diffMinutes = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60));
+  if (diffMinutes < 0) diffMinutes = 0;
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+};
+
+/**
+ * 実際の作業時間を計算する関数
+ * @param {string} clockIn - 出勤時間（ISO形式）
+ * @param {string} clockOut - 退勤時間（ISO形式）
+ * @param {string | null} breakStart - 休憩開始時間（ISO形式）
+ * @param {string | null} breakEnd - 休憩終了時間（ISO形式）
+ * @returns {string} 実際の作業時間（HH:mm形式）
+ */
+const calculateActualWorkTime = (
+  clockIn: string,
+  clockOut: string,
+  breakStart: string | null,
+  breakEnd: string | null
+): string => {
+  const start = new Date(clockIn);
+  const end = new Date(clockOut);
+  let totalMinutes = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60)); // 出勤から退勤までの純粋な総時間
+  if (totalMinutes < 0) totalMinutes = 0; // 出勤時間が退勤時間より前の場合は0を返す 
+  let breakMinutes = 0;
+  if (breakStart && breakEnd) {
+    const bStart = new Date(breakStart);
+    const bEnd = new Date(breakEnd);
+    breakMinutes = Math.ceil((bEnd.getTime() - bStart.getTime()) / (1000 * 60));
+    if (breakMinutes < 0) breakMinutes = 0;
+  }
+  let actualMinutes = totalMinutes - breakMinutes;
+  if (actualMinutes < 0) actualMinutes = 0;
+  const hours = Math.floor(actualMinutes / 60);
+  const mins = actualMinutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 };
 
 function AttendanceContent() {
@@ -349,10 +396,19 @@ function AttendanceContent() {
                   </td>
                   <td className={styles.recordTime}>{record.clockIn}</td>
                   <td className={styles.recordTime}>{record.clockOut || '退勤未記録'}</td>
-                  <td className={styles.recordBreak}></td>
+                  <td className={styles.recordBreak}>
+                    {record.originalBreakStart && record.originalBreakEnd
+                      ? calculateBreakTime(record.originalBreakStart, record.originalBreakEnd)
+                      : '-'}
+                  </td>
                   <td className={styles.recordWorkTime}>
                     {record.clockOut && record.originalClockIn && record.originalClockOut ? (
-                      calculateWorkTime(record.originalClockIn, record.originalClockOut)
+                      calculateActualWorkTime(
+                        record.originalClockIn,
+                        record.originalClockOut,
+                        record.originalBreakStart,
+                        record.originalBreakEnd
+                      )
                     ) : (
                       '-'
                     )}
