@@ -1,6 +1,7 @@
 /**
  * 勤務時間を計算する
  * 出勤時間から退勤時間までの総時間を計算し、HH:mm形式で返す
+ * 分単位は切り上げで統一（1分でも勤務した場合は1分としてカウント）
  * 
  * @param {string} clockIn - 出勤時間（ISO形式）
  * @param {string} clockOut - 退勤時間（ISO形式）
@@ -10,7 +11,8 @@ export const calculateWorkTime = (clockIn: string, clockOut: string): string => 
   const start = new Date(clockIn);
   const end = new Date(clockOut);
   
-  const diffMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+  // 分単位で切り上げ（1分でも勤務した場合は1分としてカウント）
+  const diffMinutes = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60));
   
   if (diffMinutes < 0) {
     return '00:00';
@@ -25,25 +27,32 @@ export const calculateWorkTime = (clockIn: string, clockOut: string): string => 
 /**
  * 指定期間内の勤務時間を計算する
  * 月跨ぎ勤務の場合でも、指定期間内の時間のみを正確に計算
+ * 期間終了時刻は24:00:00として扱う
  * 
  * @param {string} clockIn - 出勤時間（ISO形式）
  * @param {string} clockOut - 退勤時間（ISO形式）
  * @param {Date} periodStart - 期間開始日
- * @param {Date} periodEnd - 期間終了日
+ * @param {Date} periodEnd - 期間終了日（24:00:00として扱う）
  * @returns {string} 期間内の勤務時間（HH:mm形式）
  */
 export const calculateWorkTimeForPeriod = (clockIn: string, clockOut: string, periodStart: Date, periodEnd: Date): string => {
   const start = new Date(clockIn);
   const end = new Date(clockOut);
   
+  // 期間終了時刻を24:00:00として扱う（次の日の00:00:00）
+  const adjustedPeriodEnd = new Date(periodEnd);
+  adjustedPeriodEnd.setDate(adjustedPeriodEnd.getDate() + 1);
+  adjustedPeriodEnd.setHours(0, 0, 0, 0);
+  
   const effectiveStart = new Date(Math.max(start.getTime(), periodStart.getTime()));
-  const effectiveEnd = new Date(Math.min(end.getTime(), periodEnd.getTime()));
+  const effectiveEnd = new Date(Math.min(end.getTime(), adjustedPeriodEnd.getTime()));
   
   if (effectiveStart.getTime() >= effectiveEnd.getTime()) {
       return '00:00';
   }
 
-  const diffMinutes = Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
+  // 分単位で切り上げ（1分でも勤務した場合は1分としてカウント）
+  const diffMinutes = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
   
   const hours = Math.floor(diffMinutes / 60);
   const mins = diffMinutes % 60;

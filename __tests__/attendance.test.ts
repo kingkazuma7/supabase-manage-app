@@ -31,11 +31,23 @@ describe('勤怠管理システムのテスト', () => {
       const clockOut = '2023-01-01T09:00:00';
       expect(calculateWorkTime(clockIn, clockOut)).toBe('00:00');
     });
+
+    test('1分の勤務時間を計算（切り上げ）', () => {
+      const clockIn = '2023-01-01T09:00:00';
+      const clockOut = '2023-01-01T09:00:30'; // 30秒の勤務
+      expect(calculateWorkTime(clockIn, clockOut)).toBe('00:01'); // 1分として切り上げ
+    });
+
+    test('59分59秒の勤務時間を計算（切り上げ）', () => {
+      const clockIn = '2023-01-01T09:00:00';
+      const clockOut = '2023-01-01T09:59:59'; // 59分59秒の勤務
+      expect(calculateWorkTime(clockIn, clockOut)).toBe('01:00'); // 1時間として切り上げ
+    });
   });
 
   describe('calculateWorkTimeForPeriod', () => {
     const periodStart = new Date('2023-01-01T00:00:00');
-    const periodEnd = new Date('2023-01-31T23:59:59');
+    const periodEnd = new Date('2023-01-31T00:00:00'); // 24:00:00として扱う
 
     test('期間内の通常勤務', () => {
       const clockIn = '2023-01-15T09:00:00';
@@ -59,6 +71,12 @@ describe('勤怠管理システムのテスト', () => {
       const clockIn = '2022-12-31T22:00:00';
       const clockOut = '2023-02-01T06:00:00';
       expect(calculateWorkTimeForPeriod(clockIn, clockOut, periodStart, periodEnd)).toBe('744:00'); // 31日分
+    });
+
+    test('期間終了時刻の境界値テスト（24:00:00として扱う）', () => {
+      const clockIn = '2023-01-31T23:30:00';
+      const clockOut = '2023-01-31T23:45:00'; // 15分の勤務
+      expect(calculateWorkTimeForPeriod(clockIn, clockOut, periodStart, periodEnd)).toBe('00:15');
     });
   });
 

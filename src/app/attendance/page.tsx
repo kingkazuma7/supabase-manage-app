@@ -198,7 +198,8 @@ function AttendanceContent() {
         const start = new Date(record.originalClockIn);
         const end = new Date(record.originalClockOut);
         const monthStart = new Date(viewYear, viewMonth, 1, 0, 0, 0, 0);
-        const monthEnd = new Date(viewYear, viewMonth + 1, 0, 23, 59, 59, 999);
+        // 期間終了時刻を24:00:00として扱う（次の日の00:00:00）
+        const monthEnd = new Date(viewYear, viewMonth + 1, 1, 0, 0, 0, 0);
 
         // 月跨ぎ判定
         if (start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear()) {
@@ -206,7 +207,8 @@ function AttendanceContent() {
           if (start.getFullYear() === viewYear && start.getMonth() === viewMonth) {
             const midnight = new Date(start);
             midnight.setHours(24, 0, 0, 0);
-            const diffMinutes = Math.floor((midnight.getTime() - start.getTime()) / (1000 * 60));
+            // 分単位で切り上げ
+            const diffMinutes = Math.ceil((midnight.getTime() - start.getTime()) / (1000 * 60));
             if (totalMinutes + diffMinutes > maxMinutes) {
               totalMinutes = maxMinutes;
               break;
@@ -217,7 +219,8 @@ function AttendanceContent() {
           if (end.getFullYear() === viewYear && end.getMonth() === viewMonth) {
             const monthStartMidnight = new Date(end);
             monthStartMidnight.setHours(0, 0, 0, 0);
-            const diffMinutes = Math.floor((end.getTime() - monthStartMidnight.getTime()) / (1000 * 60));
+            // 分単位で切り上げ
+            const diffMinutes = Math.ceil((end.getTime() - monthStartMidnight.getTime()) / (1000 * 60));
             if (totalMinutes + diffMinutes > maxMinutes) {
               totalMinutes = maxMinutes;
               break;
@@ -230,7 +233,8 @@ function AttendanceContent() {
           const effectiveStart = new Date(Math.max(start.getTime(), monthStart.getTime()));
           const effectiveEnd = new Date(Math.min(end.getTime(), monthEnd.getTime()));
           if (effectiveStart.getTime() < effectiveEnd.getTime()) {
-            const diffMinutes = Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
+            // 分単位で切り上げ
+            const diffMinutes = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
             if (totalMinutes + diffMinutes > maxMinutes) {
               totalMinutes = maxMinutes;
               break;
