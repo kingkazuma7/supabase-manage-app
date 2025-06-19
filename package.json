@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "jest"
+    "test": "jest",
+    "generate-docs": "node docs/generate-pdf.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -29,6 +30,7 @@
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
+    "markdown-pdf": "^11.0.0",
     "supabase": "^2.24.3",
     "ts-jest": "^29.4.0",
     "typescript": "^5"
