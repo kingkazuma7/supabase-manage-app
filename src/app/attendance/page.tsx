@@ -6,72 +6,7 @@ import styles from './attendance.module.css'
 import Link from 'next/link'
 import { insertAndValidateTestData, deleteTestData, testPatterns } from './testData'
 import { useAttendance } from './hooks/useAttendance'
-
-/**
- * スタッフ情報の型定義
- * @typedef {Object} Staff
- * @property {string} id - スタッフID
- * @property {string} name - スタッフ名
- */
-type Staff = {
-  id: string
-  name: string
-}
-
-/**
- * 勤怠記録の型定義
- * @typedef {Object} AttendanceRecord
- * @property {string} date - 記録日付（YYYY/MM/DD形式）
- * @property {string} clockIn - 出勤時間（HH:mm形式）
- * @property {string | null} clockOut - 退勤時間（HH:mm形式）
- * @property {boolean} isCrossDay - 日付跨ぎフラグ
- * @property {string} originalClockIn - 出勤時間（ISO形式、計算用）
- * @property {string | null} originalClockOut - 退勤時間（ISO形式、計算用）
- */
-type AttendanceRecord = {
-  date: string;
-  clockIn: string;
-  clockOut: string | null;
-  isCrossDay: boolean;
-  originalClockIn: string; // ISO形式の出勤時間（正確な計算用）
-  originalClockOut: string | null; // ISO形式の退勤時間（正確な計算用）
-}
-
-/**
- * 勤務時間情報の型定義
- * @typedef {Object} WorkTime
- * @property {string} total - 総勤務時間（HH:mm形式）
- * @property {string} name - スタッフ名
- * @property {string} clockIn - 出勤時間
- * @property {string} clockOut - 退勤時間
- */
-type WorkTime = {
-  total: string
-  name: string
-  clockIn: string
-  clockOut: string
-}
-
-/**
- * 勤怠ステータスの型定義
- * @typedef {Object} AttendanceStatus
- * @property {boolean} isWorking - 勤務中かどうか
- * @property {string | null} lastClockIn - 最終出勤時間（ISO形式）
- * @property {string | null} lastClockOut - 最終退勤時間（ISO形式）
- * @property {'勤務中' | '退勤済み' | null} status - 勤怠ステータス
- */
-type AttendanceStatus = {
-  isWorking: boolean
-  lastClockIn: string | null
-  lastClockOut: string | null
-  status: '勤務中' | '退勤済み' | null
-}
-
-// 追加：月次合計の型定義
-type MonthlyTotal = {
-    hours: number;
-    minutes: number;
-};
+import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from './types'
 
 /**
  * 勤務時間の合計を計算する（出勤から退勤までの純粋な総時間）
@@ -225,6 +160,7 @@ function AttendanceContent() {
     setViewYear,
     setViewMonth,
     handleAttendance,
+    handleBreak,
     fixData
   } = useAttendance(staffId);
 
@@ -396,9 +332,9 @@ function AttendanceContent() {
                   </td>
                   <td className={styles.recordTime}>{record.clockIn}</td>
                   <td className={styles.recordTime}>{record.clockOut || '退勤未記録'}</td>
-                  <td className={styles.recordBreak}>
-                    {record.originalBreakStart && record.originalBreakEnd
-                      ? calculateBreakTime(record.originalBreakStart, record.originalBreakEnd)
+                  <td className={styles.recordTime}>
+                    {record.breakStart && record.breakEnd
+                      ? calculateBreakTime(record.breakStart, record.breakEnd)
                       : '-'}
                   </td>
                   <td className={styles.recordWorkTime}>
@@ -406,8 +342,8 @@ function AttendanceContent() {
                       calculateActualWorkTime(
                         record.originalClockIn,
                         record.originalClockOut,
-                        record.originalBreakStart,
-                        record.originalBreakEnd
+                        record.breakStart,
+                        record.breakEnd
                       )
                     ) : (
                       '-'
@@ -437,8 +373,8 @@ function AttendanceContent() {
         >
           退勤
         </button>
-        <button className={styles.buttonSecondary}>休憩開始</button>
-        <button className={styles.buttonSecondary}>休憩終了</button>
+        <button className={styles.buttonSecondary} onClick={() => handleBreak('休憩開始')}>休憩開始</button>
+        <button className={styles.buttonSecondary} onClick={() => handleBreak('休憩終了')}>休憩終了</button>
       </div>
 
       {staff && (

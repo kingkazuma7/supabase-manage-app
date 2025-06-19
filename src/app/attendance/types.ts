@@ -24,6 +24,10 @@ export type AttendanceRecord = {
   originalClockIn: string;
   /** 退勤時間（ISO形式、計算用） */
   originalClockOut: string | null;
+  /** 休憩開始時間（ISO形式） */
+  breakStart: string | null;
+  /** 休憩終了時間（ISO形式） */
+  breakEnd: string | null;
 };
 
 /**
