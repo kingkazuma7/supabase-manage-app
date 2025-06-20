@@ -373,8 +373,20 @@ function AttendanceContent() {
         >
           退勤
         </button>
-        <button className={styles.buttonSecondary} onClick={() => handleBreak('休憩開始')}>休憩開始</button>
-        <button className={styles.buttonSecondary} onClick={() => handleBreak('休憩終了')}>休憩終了</button>
+        <button 
+          className={styles.buttonSecondary} 
+          onClick={() => handleBreak('休憩開始')}
+          disabled={!status.isWorking || status.isOnBreak || status.isBreakCompleted}
+        >
+          休憩開始
+        </button>
+        <button 
+          className={styles.buttonSecondary} 
+          onClick={() => handleBreak('休憩終了')}
+          disabled={!status.isWorking || !status.isOnBreak}
+        >
+          休憩終了
+        </button>
       </div>
 
       {staff && (

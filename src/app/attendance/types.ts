@@ -50,12 +50,18 @@ export type WorkTime = {
 export type AttendanceStatus = {
   /** 勤務中かどうか */
   isWorking: boolean;
-  /** 最終出勤時間（ISO形式） */
+  /** 最後の出勤時間（ISO形式） */
   lastClockIn: string | null;
-  /** 最終退勤時間（ISO形式） */
+  /** 最後の退勤時間（ISO形式） */
   lastClockOut: string | null;
   /** 勤怠ステータス */
   status: '勤務中' | '退勤済み' | null;
+  /** 休憩中かどうか */
+  isOnBreak: boolean;
+  /** 休憩開始時間（ISO形式） */
+  breakStart: string | null;
+  /** 本日の休憩が完了しているかどうか */
+  isBreakCompleted: boolean;
 };
 
 /**

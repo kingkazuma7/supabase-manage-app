@@ -31,7 +31,10 @@ export const useAttendance = (staffId: string | null) => {
     isWorking: false,
     lastClockIn: null,
     lastClockOut: null,
-    status: null
+    status: null,
+    isOnBreak: false,
+    breakStart: null,
+    isBreakCompleted: false
   });
   const [error, setError] = useState<string | null>(null);
   const [isTodayCompleted, setIsTodayCompleted] = useState(false);
@@ -138,13 +141,17 @@ export const useAttendance = (staffId: string | null) => {
 
         const lastUnclockedOut = attendanceData.findLast(r => !r.clock_out);
         const lastClockedOut = attendanceData.findLast(r => r.clock_out);
+        
 
         const currentStatus: AttendanceStatus = {
             isWorking: !!lastUnclockedOut,
             lastClockIn: lastUnclockedOut?.clock_in || lastClockedOut?.clock_in || null,
             lastClockOut: lastUnclockedOut ? null : (lastClockedOut?.clock_out || null),
-            status: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null)
-        };
+            status: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null),
+            isOnBreak: !!(lastUnclockedOut?.break_start && !lastUnclockedOut?.break_end),
+            breakStart: lastUnclockedOut?.break_start || null,
+            isBreakCompleted: !!(lastUnclockedOut?.break_start && lastUnclockedOut?.break_end)
+          };
         setStatus(currentStatus);
         
         if (!validateRecords(attendanceData)) {
