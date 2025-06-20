@@ -490,3 +490,10 @@
   background-color: #7be0a6;
   color: #145a24;
 }
+
+.buttonSecondary:disabled {
+  background-color: #d1d5db;
+  color: #6b7280;
+  border-color: #d1d5db;
+  cursor: not-allowed;
+}
