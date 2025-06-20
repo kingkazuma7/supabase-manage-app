@@ -120,10 +120,12 @@
   background: var(--background-secondary);
   border-radius: 0.5rem;
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .recordsTable thead {
   background: var(--primary-alpha-100);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .recordsTable th {
@@ -132,12 +134,22 @@
   font-weight: 600;
   color: var(--foreground);
   border-bottom: 2px solid var(--primary-alpha-200);
+  border-right: 1px solid var(--border-color);
+}
+
+.recordsTable th:last-child {
+  border-right: none;
 }
 
 .recordsTable td {
   padding: 1rem;
   border-bottom: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
   color: var(--text-primary);
+}
+
+.recordsTable td:last-child {
+  border-right: none;
 }
 
 .recordsTable tr:last-child td {
@@ -153,13 +165,13 @@
 }
 
 .recordDate {
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-secondary);
   font-family: var(--font-geist-mono);
 }
 
 .recordTime {
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text-primary);
   font-family: var(--font-geist-mono);
 }
@@ -169,7 +181,7 @@
 }
 
 .recordWorkTime {
-  font-weight: 600;
+  font-weight: 400;
   color: var(--primary);
   font-family: var(--font-geist-mono);
 }

@@ -1,12 +1,26 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --border-color: #e5e7eb;
+  --background-hover: #f3f4f6;
+  --background-secondary: #f9fafb;
+  --primary-alpha-100: #dbeafe;
+  --primary-alpha-200: #bfdbfe;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --border-color: #374151;
+    --background-hover: #1f2937;
+    --background-secondary: #111827;
+    --primary-alpha-100: #1e3a8a;
+    --primary-alpha-200: #1e40af;
+    --text-primary: #f9fafb;
+    --text-secondary: #9ca3af;
   }
 }
 
