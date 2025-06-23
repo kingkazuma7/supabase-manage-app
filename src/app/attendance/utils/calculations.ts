@@ -1,6 +1,4 @@
-// 共通で使用する定数
-const MINUTES_IN_HOUR = 60;
-const MILLISECONDS_IN_MINUTE = 1000 * 60;
+import { TIME } from '../constants';
 
 /**
  * 勤務時間を計算する
@@ -15,7 +13,7 @@ export const calculateWorkTime = (clockIn: string, clockOut: string): string => 
   const start = new Date(clockIn);
   const end = new Date(clockOut);
   
-  const diffMinutes = Math.ceil((end.getTime() - start.getTime()) / MILLISECONDS_IN_MINUTE);
+  const diffMinutes = Math.ceil((end.getTime() - start.getTime()) / TIME.MILLISECONDS_IN_MINUTE);
   
   if (diffMinutes < 0) return '00:00';
 
@@ -28,8 +26,8 @@ export const calculateWorkTime = (clockIn: string, clockOut: string): string => 
  * @returns HH:mm形式の文字列
  */
 const formatMinutesToTime = (totalMinutes: number): string => {
-  const hours = Math.floor(totalMinutes / MINUTES_IN_HOUR);
-  const minutes = totalMinutes % MINUTES_IN_HOUR;
+  const hours = Math.floor(totalMinutes / TIME.MINUTES_IN_HOUR);
+  const minutes = totalMinutes % TIME.MINUTES_IN_HOUR;
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
@@ -45,7 +43,7 @@ const formatMinutesToTime = (totalMinutes: number): string => {
 const calculateBreakMinutes = (breakStart: string, breakEnd: string): number => {
   const start = new Date(breakStart);
   const end = new Date(breakEnd);
-  return Math.ceil((end.getTime() - start.getTime()) / MILLISECONDS_IN_MINUTE);
+  return Math.ceil((end.getTime() - start.getTime()) / TIME.MILLISECONDS_IN_MINUTE);
 };
 
 /**
@@ -80,7 +78,7 @@ export const calculateWorkTimeForPeriod = (
   if (effectiveStart.getTime() >= effectiveEnd.getTime()) return '00:00';
 
   const diffMinutes = Math.floor(
-    (effectiveEnd.getTime() - effectiveStart.getTime()) / MILLISECONDS_IN_MINUTE
+    (effectiveEnd.getTime() - effectiveStart.getTime()) / TIME.MILLISECONDS_IN_MINUTE
   );
   
   return formatMinutesToTime(diffMinutes);
@@ -94,7 +92,7 @@ export const calculateWorkTimeForPeriod = (
  */
 export const getMinutesFromHHMM = (timeString: string): number => {
   const [hours, minutes] = timeString.split(':').map(Number);
-  return (hours * MINUTES_IN_HOUR) + minutes;
+  return (hours * TIME.MINUTES_IN_HOUR) + minutes;
 };
 
 /**
@@ -148,7 +146,7 @@ export const calculateActualWorkTime = (
   const end = new Date(clockOut);
   
   // 総勤務時間を分単位で計算（切り上げ）
-  const totalWorkMinutes = Math.ceil((end.getTime() - start.getTime()) / MILLISECONDS_IN_MINUTE);
+  const totalWorkMinutes = Math.ceil((end.getTime() - start.getTime()) / TIME.MILLISECONDS_IN_MINUTE);
   
   // 休憩時間を分単位で計算（休憩がある場合のみ）
   let breakMinutes = 0;

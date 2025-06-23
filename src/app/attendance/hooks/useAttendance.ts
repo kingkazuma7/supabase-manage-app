@@ -3,28 +3,20 @@ import { createClient } from '../../utils/supabase/client';
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from '../types';
 import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords, calculateActualWorkTime } from '../utils/calculations';
 import { formatTimeString, formatDateJP, DATE_FORMAT } from '../utils/dateUtils';
+import { TIME, ATTENDANCE_ERRORS, WORK_STATUS } from '../constants';
 
-// エラーメッセージの定数
-const ATTENDANCE_ERRORS = {
-  ALREADY_WORKING: '既に勤務中の記録があります。',
-  ALREADY_COMPLETED: '本日は既に出勤・退勤済みです。',
-  NO_STAFF_INFO: 'スタッフ情報がありません',
-  INVALID_CLOCK_OUT: '出勤時間より前の時刻に退勤することはできません。',
-  DATA_INCONSISTENCY: '記録に不整合があります。管理者に連絡してください。',
-  FETCH_ERROR: 'データの取得に失敗しました',
-  BREAK_ALREADY_STARTED: '既に休憩中の記録があります。',
-  NO_BREAK_RECORD: '休憩開始記録がありません、または既に休憩終了済みです。',
-  INVALID_BREAK_END: '休憩開始時間より前の時刻に休憩終了することはできません。'
-} as const;
+// エラーメッセージの定数を削除（constants.tsに移動済み）
 
-// 勤務ステータスの定数
-const WORK_STATUS = {
-  WORKING: '勤務中',
-  COMPLETED: '退勤済み',
-  NOT_CLOCKED_OUT: '未退勤'
-} as const;
-
-// formatTimeStringを使用するため、getTimeString関数は削除
+/**
+ * 分を「HH:mm」形式に変換する
+ * @param totalMinutes - 合計分数
+ * @returns HH:mm形式の文字列
+ */
+const formatMinutesToTime = (totalMinutes: number): string => {
+  const hours = Math.floor(totalMinutes / TIME.MINUTES_IN_HOUR);
+  const minutes = totalMinutes % TIME.MINUTES_IN_HOUR;
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+};
 
 /**
  * 勤怠管理のカスタムフック
@@ -67,59 +59,33 @@ export const useAttendance = (staffId: string | null) => {
   const [viewMonth, setViewMonth] = useState(now.getMonth());
 
   /**
-   * 指定月の勤怠記録から合計実労働時間を計算する
-   * 計算手順：
-   * 1. 各記録の実労働時間を計算（勤務時間から休憩時間を引く）
-   * 2. 月内の実労働時間のみを集計
-   * 3. 160時間制限を適用
-   * 
-   * @param records - 勤怠記録の配列
-   * @param firstDayOfMonth - 月初日
-   * @param lastDayOfMonth - 月末日
-   * @returns 月次合計実労働時間
+   * 月次集計を計算
    */
-  const calculateMonthlyTotal = (
-    records: {
-      clock_in: string;
-      clock_out: string | null;
-      break_start: string | null;
-      break_end: string | null;
-    }[],
-    firstDayOfMonth: Date,
-    lastDayOfMonth: Date
-  ): MonthlyTotal => {
-    let totalMinutes = 0;
-    let breakTotalMinutes = 0; // 総労働時間（分）
-    const MAX_MONTHLY_MINUTES = 160 * 60; // 160時間制限（分換算）
-
-    records.forEach(record => {
-      if (!record.clock_out) return;
-
-      // 月内の勤務時間を計算（月跨ぎ対応）
-      const workMinutes = getMinutesFromHHMM(
-        calculateWorkTimeForPeriod(
-          record.clock_in,
-          record.clock_out,
-          firstDayOfMonth,
-          lastDayOfMonth
-        )
+  const calculateMonthlyTotal = (records: AttendanceRecord[]): MonthlyTotal => {
+    const totalMinutes = records.reduce((acc, record) => {
+      if (!record.clockOut) return acc;
+      
+      // 月初と月末を設定
+      const date = new Date(record.originalClockIn);
+      const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      // 月内の勤務時間を計算
+      const workTime = calculateWorkTimeForPeriod(
+        record.originalClockIn,
+        record.originalClockOut!,
+        firstDayOfMonth,
+        lastDayOfMonth
       );
+      
+      return acc + getMinutesFromHHMM(workTime);
+    }, 0);
 
-      // 休憩時間を計算（休憩がある場合のみ）
-      const breakMinutes = (record.break_start && record.break_end) ?
-        getMinutesFromHHMM(calculateWorkTime(record.break_start, record.break_end)) : 0;
-
-      // 総労働時間と総休憩時間を加算
-      totalMinutes += workMinutes;
-      breakTotalMinutes += breakMinutes;
-    });
-
-    let actualMinutes = Math.max(0, totalMinutes - breakTotalMinutes);
-    actualMinutes = Math.min(actualMinutes, MAX_MONTHLY_MINUTES);
-
+    const actualMinutes = Math.min(totalMinutes, TIME.MAX_MONTHLY_MINUTES);
+    
     return {
-      hours: Math.floor(actualMinutes / 60),
-      minutes: actualMinutes % 60
+      hours: Math.floor(actualMinutes / TIME.MINUTES_IN_HOUR),
+      minutes: actualMinutes % TIME.MINUTES_IN_HOUR
     };
   };
 
@@ -209,11 +175,7 @@ export const useAttendance = (staffId: string | null) => {
         setIsTodayCompleted(todayCompleted);
 
         // 月次合計時間の計算
-        const monthlyTotal = calculateMonthlyTotal(
-          attendanceData,
-          firstDayOfCurrentMonth,
-          lastDayOfCurrentMonth
-        );
+        const monthlyTotal = calculateMonthlyTotal(attendanceData);
         setMonthlyTotal(monthlyTotal);
 
         // 勤怠記録の整形
@@ -252,12 +214,15 @@ export const useAttendance = (staffId: string | null) => {
           if (todayRecord.clock_out) {
             setWorkTime(createDailyWorkTime(todayRecord, staffData.name));
           } else {
-            setWorkTime({
+            const workTime: WorkTime = {
               total: '勤務中',
+              actual: '計算中',
+              break: '00:00',
               name: staffData.name,
               clockIn: formatTimeString(new Date(todayRecord.clock_in)),
               clockOut: '未退勤'
-            });
+            };
+            setWorkTime(workTime);
           }
         }
 
@@ -460,6 +425,35 @@ export const useAttendance = (staffId: string | null) => {
       console.error('データ修復エラー:', err);
       setError('修復に失敗しました');
     }
+  };
+
+  /**
+   * 勤務時間を計算して状態を更新
+   */
+  const updateWorkTime = (record: AttendanceRecord) => {
+    if (!record.clockOut) return;
+
+    const total = calculateWorkTime(record.originalClockIn, record.originalClockOut!);
+    const actual = calculateActualWorkTime(
+      record.originalClockIn,
+      record.originalClockOut!,
+      record.breakStart,
+      record.breakEnd
+    );
+    const breakTime = record.breakStart && record.breakEnd
+      ? calculateWorkTime(record.breakStart, record.breakEnd)
+      : '00:00';
+
+    const workTime: WorkTime = {
+      total,
+      actual,
+      break: breakTime,
+      name: staff?.name || '',
+      clockIn: record.clockIn,
+      clockOut: record.clockOut
+    };
+
+    setWorkTime(workTime);
   };
 
   return {
