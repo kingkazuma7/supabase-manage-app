@@ -201,13 +201,13 @@ function AttendanceContent() {
           <h3>テストデータ操作（開発環境のみ）</h3>
           <div className={styles.testButtons}>
             <button 
-              onClick={() => insertAndValidateTestData(staffId || '', 'normalWithBreak')}
+              onClick={() => insertAndValidateTestData(staffId || '', '休憩付き通常勤務')}
               className={styles.buttonTest}
             >
               通常パターン
             </button>
             <button 
-              onClick={() => insertAndValidateTestData(staffId || '', 'multiDayPattern')}
+              onClick={() => insertAndValidateTestData(staffId || '', '複数日')}
               className={styles.buttonTest}
             >
               3ヶ月分
