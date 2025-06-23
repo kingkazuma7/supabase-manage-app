@@ -1,7 +1,41 @@
 import { useState, useCallback, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from '../types';
-import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords } from '../utils/calculations';
+import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords, calculateActualWorkTime } from '../utils/calculations';
+import { formatTimeString, formatDateJP } from '../utils/dateUtils';
+
+// エラーメッセージの定数
+const ATTENDANCE_ERRORS = {
+  ALREADY_WORKING: '既に勤務中の記録があります。',
+  ALREADY_COMPLETED: '本日は既に出勤・退勤済みです。',
+  NO_STAFF_INFO: 'スタッフ情報がありません',
+  INVALID_CLOCK_OUT: '出勤時間より前の時刻に退勤することはできません。',
+  DATA_INCONSISTENCY: '記録に不整合があります。管理者に連絡してください。',
+  FETCH_ERROR: 'データの取得に失敗しました',
+  BREAK_ALREADY_STARTED: '既に休憩中の記録があります。',
+  NO_BREAK_RECORD: '休憩開始記録がありません、または既に休憩終了済みです。',
+  INVALID_BREAK_END: '休憩開始時間より前の時刻に休憩終了することはできません。'
+} as const;
+
+// 日付フォーマットの定数
+const DATE_FORMAT = {
+  TIME: { hour: '2-digit', minute: '2-digit', hour12: false } as const,
+  LOCALE: 'ja-JP'
+} as const;
+
+// 勤務ステータスの定数
+const WORK_STATUS = {
+  WORKING: '勤務中',
+  COMPLETED: '退勤済み',
+  NOT_CLOCKED_OUT: '未退勤'
+} as const;
+
+/**
+ * 時刻文字列を取得（HH:mm形式）
+ */
+const getTimeString = (date: Date): string => {
+  return date.toLocaleTimeString(DATE_FORMAT.LOCALE, DATE_FORMAT.TIME).slice(0, 5);
+};
 
 /**
  * 勤怠管理のカスタムフック
@@ -43,6 +77,88 @@ export const useAttendance = (staffId: string | null) => {
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
 
+  /**
+   * 指定月の勤怠記録から合計時間を計算する
+   */
+  const calculateMonthlyTotal = (
+    records: {
+      clock_in: string;
+      clock_out: string | null;
+      break_start: string | null;
+      break_end: string | null;
+    }[],
+    firstDayOfMonth: Date,
+    lastDayOfMonth: Date
+  ): MonthlyTotal => {
+    let totalMonthlyMinutes = 0;
+
+    records.forEach(record => {
+      if (!record.clock_out) return;
+
+      // 勤務時間の計算
+      const workMinutes = getMinutesFromHHMM(
+        calculateWorkTimeForPeriod(
+          record.clock_in,
+          record.clock_out,
+          firstDayOfMonth,
+          lastDayOfMonth
+        )
+      );
+
+      // 休憩時間の計算（休憩がある場合のみ）
+      const breakMinutes = (record.break_start && record.break_end) ?
+        getMinutesFromHHMM(calculateWorkTime(record.break_start, record.break_end)) : 0;
+
+      // 実労働時間を加算（休憩時間を差し引く）
+      totalMonthlyMinutes += Math.max(0, workMinutes - breakMinutes);
+    });
+
+    return {
+      hours: Math.floor(totalMonthlyMinutes / 60),
+      minutes: totalMonthlyMinutes % 60
+    };
+  };
+
+  /**
+   * 日次の勤務情報を作成する
+   */
+  const createDailyWorkTime = (
+    record: {
+      clock_in: string;
+      clock_out: string;
+      break_start: string | null;
+      break_end: string | null;
+    },
+    staffName: string
+  ): WorkTime => {
+    const recordClockIn = new Date(record.clock_in);
+    const recordClockOut = new Date(record.clock_out);
+
+    // 総勤務時間を計算（休憩時間を含む）
+    const totalWorkTime = calculateWorkTime(record.clock_in, record.clock_out);
+
+    // 実労働時間を計算（休憩時間を差し引く）
+    const actualWorkTime = calculateActualWorkTime(
+      record.clock_in,
+      record.clock_out,
+      record.break_start,
+      record.break_end
+    );
+
+    // 休憩時間を計算
+    const breakTime = record.break_start && record.break_end ?
+      calculateWorkTime(record.break_start, record.break_end) : '00:00';
+
+    return {
+      total: totalWorkTime,
+      actual: actualWorkTime,
+      break: breakTime,
+      name: staffName,
+      clockIn: formatTimeString(recordClockIn),
+      clockOut: formatTimeString(recordClockOut)
+    };
+  };
+
   const fetchData = useCallback(async () => {
     if (!staffId) return;
     
@@ -70,8 +186,8 @@ export const useAttendance = (staffId: string | null) => {
         .select('*')
         .eq('staff_id', staffId)
         .or(
-            `and(clock_in.gte.${firstDayOfPreviousMonth.toISOString()},clock_in.lte.${lastDayOfCurrentMonth.toISOString()}),` +
-            `and(clock_in.lt.${firstDayOfPreviousMonth.toISOString()},clock_out.gte.${firstDayOfCurrentMonth.toISOString()})`
+          `and(clock_in.gte.${firstDayOfPreviousMonth.toISOString()},clock_in.lte.${lastDayOfCurrentMonth.toISOString()}),` +
+          `and(clock_in.lt.${firstDayOfPreviousMonth.toISOString()},clock_out.gte.${firstDayOfCurrentMonth.toISOString()})`
         )
         .order('clock_in', { ascending: true });
 
@@ -80,89 +196,91 @@ export const useAttendance = (staffId: string | null) => {
       if (attendanceData) {
         const todayIso = now.toISOString().split('T')[0];
         
+        // 本日の出退勤完了チェック
         const todayCompleted = attendanceData.some(record => 
-          record.clock_in && new Date(record.clock_in).toISOString().split('T')[0] === todayIso && record.clock_out
+          record.clock_in && 
+          new Date(record.clock_in).toISOString().split('T')[0] === todayIso && 
+          record.clock_out
         );
         setIsTodayCompleted(todayCompleted);
 
-        let totalMonthlyMinutes = 0;
-        const formattedRecords: AttendanceRecord[] = [];
-        
-        attendanceData.forEach(record => {
-          const recordClockIn = new Date(record.clock_in);
-          const recordClockOut = record.clock_out ? new Date(record.clock_out) : null;
+        // 月次合計時間の計算
+        const monthlyTotal = calculateMonthlyTotal(
+          attendanceData,
+          firstDayOfCurrentMonth,
+          lastDayOfCurrentMonth
+        );
+        setMonthlyTotal(monthlyTotal);
 
-          if (recordClockIn.getMonth() === currentMonth || (recordClockOut && recordClockOut.getMonth() === currentMonth && recordClockIn.getMonth() !== currentMonth)) {
-                const isCrossDay = recordClockOut ? recordClockIn.toDateString() !== recordClockOut.toDateString() : false;
+        // 勤怠記録の整形
+        const formattedRecords = attendanceData
+          .filter(record => {
+            const recordClockIn = new Date(record.clock_in);
+            const recordClockOut = record.clock_out ? new Date(record.clock_out) : null;
+            return recordClockIn.getMonth() === currentMonth || 
+                   (recordClockOut && recordClockOut.getMonth() === currentMonth && recordClockIn.getMonth() !== currentMonth);
+          })
+          .map(record => {
+            const recordClockIn = new Date(record.clock_in);
+            const recordClockOut = record.clock_out ? new Date(record.clock_out) : null;
+            return {
+              date: formatDateJP(recordClockIn),
+              clockIn: formatTimeString(recordClockIn),
+              clockOut: recordClockOut ? formatTimeString(recordClockOut) : null,
+              isCrossDay: recordClockOut ? 
+                recordClockIn.toDateString() !== recordClockOut.toDateString() : 
+                false,
+              originalClockIn: record.clock_in,
+              originalClockOut: record.clock_out,
+              breakStart: record.break_start || null,
+              breakEnd: record.break_end || null
+            };
+          });
 
-                formattedRecords.push({
-                    date: recordClockIn.toLocaleDateString('ja-JP'),
-                    clockIn: recordClockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5),
-                    clockOut: recordClockOut ? recordClockOut.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5) : null,
-                    isCrossDay,
-                    originalClockIn: record.clock_in,
-                    originalClockOut: record.clock_out,
-                    breakStart: record.break_start || null,
-                    breakEnd: record.break_end || null
-                });
-            }
-
-            if (recordClockIn.toISOString().split('T')[0] === todayIso && record.clock_out) {
-                setWorkTime({
-                    total: calculateWorkTime(record.clock_in, record.clock_out),
-                    name: staffData.name,
-                    clockIn: recordClockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5),
-                    clockOut: recordClockOut!.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5)
-                });
-            } else if (recordClockIn.toISOString().split('T')[0] === todayIso && !record.clock_out) {
-                setWorkTime({
-                    total: '勤務中',
-                    name: staffData.name,
-                    clockIn: recordClockIn.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false }).slice(0, 5),
-                    clockOut: '未退勤'
-                });
-            }
-
-            if (record.clock_out) {
-                const segmentMinutes = getMinutesFromHHMM(
-                    calculateWorkTimeForPeriod(record.clock_in, record.clock_out, firstDayOfCurrentMonth, lastDayOfCurrentMonth)
-                );
-                totalMonthlyMinutes += segmentMinutes;
-            }
-        });
-        
-        formattedRecords.sort((a, b) => new Date(a.originalClockIn).getTime() - new Date(b.originalClockIn).getTime());
         setRecords(formattedRecords);
-        
-        setMonthlyTotal({
-            hours: Math.floor(totalMonthlyMinutes / 60),
-            minutes: totalMonthlyMinutes % 60
-        });
 
+        // 本日の勤務時間設定
+        const todayRecord = attendanceData.find(record => 
+          new Date(record.clock_in).toISOString().split('T')[0] === todayIso
+        );
+
+        if (todayRecord) {
+          if (todayRecord.clock_out) {
+            setWorkTime(createDailyWorkTime(todayRecord, staffData.name));
+          } else {
+            setWorkTime({
+              total: '勤務中',
+              name: staffData.name,
+              clockIn: formatTimeString(new Date(todayRecord.clock_in)),
+              clockOut: '未退勤'
+            });
+          }
+        }
+
+        // 現在のステータス設定
         const lastUnclockedOut = attendanceData.findLast(r => !r.clock_out);
         const lastClockedOut = attendanceData.findLast(r => r.clock_out);
-        
 
         const currentStatus: AttendanceStatus = {
-            isWorking: !!lastUnclockedOut,
-            lastClockIn: lastUnclockedOut?.clock_in || lastClockedOut?.clock_in || null,
-            lastClockOut: lastUnclockedOut ? null : (lastClockedOut?.clock_out || null),
-            status: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null),
-            isOnBreak: !!(lastUnclockedOut?.break_start && !lastUnclockedOut?.break_end),
-            breakStart: lastUnclockedOut?.break_start || null,
-            isBreakCompleted: !!(lastUnclockedOut?.break_start && lastUnclockedOut?.break_end)
-          };
+          isWorking: !!lastUnclockedOut,
+          lastClockIn: lastUnclockedOut?.clock_in || lastClockedOut?.clock_in || null,
+          lastClockOut: lastUnclockedOut ? null : (lastClockedOut?.clock_out || null),
+          status: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null),
+          isOnBreak: !!(lastUnclockedOut?.break_start && !lastUnclockedOut?.break_end),
+          breakStart: lastUnclockedOut?.break_start || null,
+          isBreakCompleted: !!(lastUnclockedOut?.break_start && lastUnclockedOut?.break_end)
+        };
         setStatus(currentStatus);
         
         if (!validateRecords(attendanceData)) {
-          setError('記録に不整合があります。管理者に連絡してください。');
+          setError(ATTENDANCE_ERRORS.DATA_INCONSISTENCY);
         } else {
-            setError(null);
+          setError(null);
         }
       }
     } catch (err) {
       console.error('データ取得エラー:', err);
-      setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
+      setError(err instanceof Error ? err.message : ATTENDANCE_ERRORS.FETCH_ERROR);
     }
   }, [staffId]);
 
@@ -172,7 +290,7 @@ export const useAttendance = (staffId: string | null) => {
 
   const handleAttendance = async (type: '出勤' | '退勤') => {
     try {
-      if (!staff) throw new Error('スタッフ情報がありません');
+      if (!staff) throw new Error(ATTENDANCE_ERRORS.NO_STAFF_INFO);
       
       const supabase = createClient();
       const now = new Date();
@@ -191,11 +309,11 @@ export const useAttendance = (staffId: string | null) => {
 
       if (type === '出勤') {
         if (latestRecord && !latestRecord.clock_out) {
-          throw new Error('既に勤務中の記録があります。');
+          throw new Error(ATTENDANCE_ERRORS.ALREADY_WORKING);
         }
         
         if (latestRecord && latestRecord.clock_out && new Date(latestRecord.clock_in).toISOString().split('T')[0] === todayIso) {
-            throw new Error('本日は既に出勤・退勤済みです。');
+          throw new Error(ATTENDANCE_ERRORS.ALREADY_COMPLETED);
         }
 
         const { error } = await supabase
@@ -213,7 +331,7 @@ export const useAttendance = (staffId: string | null) => {
         }
         
         if (new Date(latestRecord.clock_in).getTime() > now.getTime()) {
-            throw new Error('出勤時間より前の時刻に退勤することはできません。');
+          throw new Error(ATTENDANCE_ERRORS.INVALID_CLOCK_OUT);
         }
 
         const { error } = await supabase
@@ -227,7 +345,7 @@ export const useAttendance = (staffId: string | null) => {
       await fetchData();
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setError(err instanceof Error ? err.message : ATTENDANCE_ERRORS.FETCH_ERROR);
     }
   };
 
@@ -238,17 +356,11 @@ export const useAttendance = (staffId: string | null) => {
   
   const handleBreak = async (type: '休憩開始' | '休憩終了') => {
     try {
-      if (!staff) throw new Error('スタッフ情報がありません');
+      if (!staff) throw new Error(ATTENDANCE_ERRORS.NO_STAFF_INFO);
       
       const supabase = createClient();
       const now = new Date();
       
-      console.log('=== 休憩処理開始 ===');
-      console.log('処理タイプ:', type);
-      console.log('現在時刻:', now.toISOString());
-      console.log('スタッフID:', staff.id);
-      
-      // 最新の勤怠記録を取得する部分
       const { data: allRecentRecords, error: recentRecordsError } = await supabase
         .from('attendance')
         .select('*')
@@ -256,59 +368,48 @@ export const useAttendance = (staffId: string | null) => {
         .order('clock_in', { ascending: false })
         .limit(1);
       
-      if (recentRecordsError) throw recentRecordsError; // エラーが発生した場合はエラーをスロー
+      if (recentRecordsError) throw recentRecordsError;
       
-      const latestRecord = allRecentRecords ? allRecentRecords[0] : null; // 最新の勤怠記録を取得 これは出勤記録
+      const latestRecord = allRecentRecords ? allRecentRecords[0] : null;
       
       if (!latestRecord || latestRecord.clock_out) throw new Error('勤務中の記録がありません。');
       
       if (type === '休憩開始') {
-        // 休憩中の記録がある場合はエラーをスロー
         if (latestRecord.break_start && !latestRecord.break_end) {
-          throw new Error('既に休憩中の記録があります。');
+          throw new Error(ATTENDANCE_ERRORS.BREAK_ALREADY_STARTED);
         }
         
-        const { data: updateResult, error } = await supabase
+        const { error } = await supabase
           .from('attendance')
           .update({
             break_start: now.toISOString()
           })
-          .eq('id', latestRecord.id)
-          .select();
+          .eq('id', latestRecord.id);
           
-        console.log('更新結果:', updateResult);
-        
         if (error) throw error;
       } else if (type === '休憩終了') {
         if (!latestRecord.break_start || latestRecord.break_end) {
-          throw new Error('休憩開始記録がありません、または既に休憩終了済みです。');
+          throw new Error(ATTENDANCE_ERRORS.NO_BREAK_RECORD);
         }
         
         if (new Date(latestRecord.break_start).getTime() > now.getTime()) {
-            throw new Error('休憩開始時間より前の時刻に休憩終了することはできません。');
+          throw new Error(ATTENDANCE_ERRORS.INVALID_BREAK_END);
         }
 
-        const { data: updateResult, error } = await supabase
+        const { error } = await supabase
           .from('attendance')
           .update({ break_end: now.toISOString() })
-          .eq('id', latestRecord.id)
-          .select();
+          .eq('id', latestRecord.id);
           
-        console.log('更新結果:', updateResult);
-        console.log('更新エラー:', error);
-        
         if (error) throw error;
       }
       
-      console.log('=== 休憩処理完了 ===');
+      await fetchData();
+      setError(null);
     } catch (error) {
-      console.error('休憩処理エラー:', error);
-      setError(error instanceof Error ? error.message : 'エラーが発生しました');
+      setError(error instanceof Error ? error.message : ATTENDANCE_ERRORS.FETCH_ERROR);
     }
-    
-    await fetchData(); // データを再取得
-    setError(null); // エラーメッセージをクリア
-  }
+  };
   
   const fixData = async () => {
     if (!staff) return;

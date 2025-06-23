@@ -137,12 +137,14 @@ const calculateActualWorkTime = (
     breakMinutes = Math.ceil((bEnd.getTime() - bStart.getTime()) / (1000 * 60));
     if (breakMinutes < 0) breakMinutes = 0;
   }
+  
   let actualMinutes = totalMinutes - breakMinutes;
+  
   if (actualMinutes < 0) actualMinutes = 0;
   const hours = Math.floor(actualMinutes / 60);
   const mins = actualMinutes % 60;
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
+}; 
 
 function AttendanceContent() {
   const searchParams = useSearchParams()

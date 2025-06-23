@@ -36,6 +36,10 @@ export type AttendanceRecord = {
 export type WorkTime = {
   /** 総勤務時間（HH:mm形式） */
   total: string;
+  /** 実労働時間（HH:mm形式） */
+  actual: string;
+  /** 休憩時間（HH:mm形式） */
+  break: string;
   /** スタッフ名 */
   name: string;
   /** 出勤時間 */
