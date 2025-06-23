@@ -11,6 +11,7 @@ import {
   calculateWorkTime, 
   calculateActualWorkTime
 } from './utils/calculations'
+import { formatDateWithWeekday } from './utils/dateUtils'
 
 function AttendanceContent() {
   const searchParams = useSearchParams()
@@ -134,14 +135,7 @@ function AttendanceContent() {
               {filteredRecords.map((record, i) => (
                 <tr key={i} className={styles.recordRow}>
                   <td className={styles.recordDate}>
-                    {(() => {
-                      const date = new Date(record.originalClockIn);
-                      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-                      const day = date.getDate().toString().padStart(2, '0');
-                      const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-                      const weekday = weekdays[date.getDay()];
-                      return `${month}/${day}（${weekday}）`;
-                    })()}
+                    {formatDateWithWeekday(new Date(record.originalClockIn))}
                   </td>
                   <td className={styles.recordTime}>{record.clockIn}</td>
                   <td className={styles.recordTime}>{record.clockOut || '退勤未記録'}</td>

@@ -12,6 +12,11 @@ export const DATE_FORMAT = {
 } as const;
 
 /**
+ * 曜日の定数
+ */
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+
+/**
  * 日付を YYYY-MM-DD 形式の文字列に変換
  */
 export const formatDateToISOString = (date: Date): string => {
@@ -30,6 +35,17 @@ export const formatTimeString = (date: Date): string => {
  */
 export const formatDateJP = (date: Date): string => {
   return date.toLocaleDateString(DATE_FORMAT.LOCALE, DATE_FORMAT.DATE);
+};
+
+/**
+ * 日付を MM/DD（曜） 形式の文字列に変換
+ * 例: 01/15（月）
+ */
+export const formatDateWithWeekday = (date: Date): string => {
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const weekday = WEEKDAYS[date.getDay()];
+  return `${month}/${day}（${weekday}）`;
 };
 
 /**
