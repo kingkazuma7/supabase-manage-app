@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from '../types';
 import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords, calculateActualWorkTime } from '../utils/calculations';
-import { formatTimeString, formatDateJP } from '../utils/dateUtils';
+import { formatTimeString, formatDateJP, DATE_FORMAT } from '../utils/dateUtils';
 
 // エラーメッセージの定数
 const ATTENDANCE_ERRORS = {
@@ -17,12 +17,6 @@ const ATTENDANCE_ERRORS = {
   INVALID_BREAK_END: '休憩開始時間より前の時刻に休憩終了することはできません。'
 } as const;
 
-// 日付フォーマットの定数
-const DATE_FORMAT = {
-  TIME: { hour: '2-digit', minute: '2-digit', hour12: false } as const,
-  LOCALE: 'ja-JP'
-} as const;
-
 // 勤務ステータスの定数
 const WORK_STATUS = {
   WORKING: '勤務中',
@@ -30,12 +24,7 @@ const WORK_STATUS = {
   NOT_CLOCKED_OUT: '未退勤'
 } as const;
 
-/**
- * 時刻文字列を取得（HH:mm形式）
- */
-const getTimeString = (date: Date): string => {
-  return date.toLocaleTimeString(DATE_FORMAT.LOCALE, DATE_FORMAT.TIME).slice(0, 5);
-};
+// formatTimeStringを使用するため、getTimeString関数は削除
 
 /**
  * 勤怠管理のカスタムフック
