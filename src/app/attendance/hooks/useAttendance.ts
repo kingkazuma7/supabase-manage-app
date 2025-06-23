@@ -78,7 +78,16 @@ export const useAttendance = (staffId: string | null) => {
   const [viewMonth, setViewMonth] = useState(now.getMonth());
 
   /**
-   * 指定月の勤怠記録から合計時間を計算する
+   * 指定月の勤怠記録から合計実労働時間を計算する
+   * 計算手順：
+   * 1. 各記録の実労働時間を計算（勤務時間から休憩時間を引く）
+   * 2. 月内の実労働時間のみを集計
+   * 3. 160時間制限を適用
+   * 
+   * @param records - 勤怠記録の配列
+   * @param firstDayOfMonth - 月初日
+   * @param lastDayOfMonth - 月末日
+   * @returns 月次合計実労働時間
    */
   const calculateMonthlyTotal = (
     records: {
@@ -90,12 +99,14 @@ export const useAttendance = (staffId: string | null) => {
     firstDayOfMonth: Date,
     lastDayOfMonth: Date
   ): MonthlyTotal => {
-    let totalMonthlyMinutes = 0;
+    let totalMinutes = 0;
+    let breakTotalMinutes = 0; // 総労働時間（分）
+    const MAX_MONTHLY_MINUTES = 160 * 60; // 160時間制限（分換算）
 
     records.forEach(record => {
       if (!record.clock_out) return;
 
-      // 勤務時間の計算
+      // 月内の勤務時間を計算（月跨ぎ対応）
       const workMinutes = getMinutesFromHHMM(
         calculateWorkTimeForPeriod(
           record.clock_in,
@@ -105,17 +116,21 @@ export const useAttendance = (staffId: string | null) => {
         )
       );
 
-      // 休憩時間の計算（休憩がある場合のみ）
+      // 休憩時間を計算（休憩がある場合のみ）
       const breakMinutes = (record.break_start && record.break_end) ?
         getMinutesFromHHMM(calculateWorkTime(record.break_start, record.break_end)) : 0;
 
-      // 実労働時間を加算（休憩時間を差し引く）
-      totalMonthlyMinutes += Math.max(0, workMinutes - breakMinutes);
+      // 総労働時間と総休憩時間を加算
+      totalMinutes += workMinutes;
+      breakTotalMinutes += breakMinutes;
     });
 
+    let actualMinutes = Math.max(0, totalMinutes - breakTotalMinutes);
+    actualMinutes = Math.min(actualMinutes, MAX_MONTHLY_MINUTES);
+
     return {
-      hours: Math.floor(totalMonthlyMinutes / 60),
-      minutes: totalMonthlyMinutes % 60
+      hours: Math.floor(actualMinutes / 60),
+      minutes: actualMinutes % 60
     };
   };
 
@@ -218,7 +233,7 @@ export const useAttendance = (staffId: string | null) => {
             const recordClockIn = new Date(record.clock_in);
             const recordClockOut = record.clock_out ? new Date(record.clock_out) : null;
             return recordClockIn.getMonth() === currentMonth || 
-                   (recordClockOut && recordClockOut.getMonth() === currentMonth && recordClockIn.getMonth() !== currentMonth);
+                  (recordClockOut && recordClockOut.getMonth() === currentMonth && recordClockIn.getMonth() !== currentMonth);
           })
           .map(record => {
             const recordClockIn = new Date(record.clock_in);

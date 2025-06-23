@@ -174,65 +174,10 @@ function AttendanceContent() {
     return date.getFullYear() === viewYear && date.getMonth() === viewMonth;
   });
 
-  // 表示月の合計勤務時間（月跨ぎ対応・160h制限）
-  const filteredMonthlyTotal = (() => {
-    let totalMinutes = 0;
-    const maxMinutes = 160 * 60;
-    for (const record of filteredRecords) {
-      if (record.clockOut && record.originalClockIn && record.originalClockOut) {
-        const start = new Date(record.originalClockIn);
-        const end = new Date(record.originalClockOut);
-        const monthStart = new Date(viewYear, viewMonth, 1, 0, 0, 0, 0);
-        // 期間終了時刻を24:00:00として扱う（次の日の00:00:00）
-        const monthEnd = new Date(viewYear, viewMonth + 1, 1, 0, 0, 0, 0);
-
-        // 月跨ぎ判定
-        if (start.getMonth() !== end.getMonth() || start.getFullYear() !== end.getFullYear()) {
-          // 前月分
-          if (start.getFullYear() === viewYear && start.getMonth() === viewMonth) {
-            const midnight = new Date(start);
-            midnight.setHours(24, 0, 0, 0);
-            // 分単位で切り上げ
-            const diffMinutes = Math.ceil((midnight.getTime() - start.getTime()) / (1000 * 60));
-            if (totalMinutes + diffMinutes > maxMinutes) {
-              totalMinutes = maxMinutes;
-              break;
-            }
-            totalMinutes += diffMinutes;
-          }
-          // 当月分
-          if (end.getFullYear() === viewYear && end.getMonth() === viewMonth) {
-            const monthStartMidnight = new Date(end);
-            monthStartMidnight.setHours(0, 0, 0, 0);
-            // 分単位で切り上げ
-            const diffMinutes = Math.ceil((end.getTime() - monthStartMidnight.getTime()) / (1000 * 60));
-            if (totalMinutes + diffMinutes > maxMinutes) {
-              totalMinutes = maxMinutes;
-              break;
-            }
-            totalMinutes += diffMinutes;
-          }
-        } else {
-          // 通常勤務
-          // 期間内に勤務がある場合のみ加算
-          const effectiveStart = new Date(Math.max(start.getTime(), monthStart.getTime()));
-          const effectiveEnd = new Date(Math.min(end.getTime(), monthEnd.getTime()));
-          if (effectiveStart.getTime() < effectiveEnd.getTime()) {
-            // 分単位で切り上げ
-            const diffMinutes = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
-            if (totalMinutes + diffMinutes > maxMinutes) {
-              totalMinutes = maxMinutes;
-              break;
-            }
-            totalMinutes += diffMinutes;
-          }
-        }
-      }
-    }
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-  })();
+  // 表示月の合計勤務時間
+  const filteredMonthlyTotal = monthlyTotal ? 
+    `${monthlyTotal.hours.toString().padStart(2, '0')}:${monthlyTotal.minutes.toString().padStart(2, '0')}` :
+    '00:00';
 
   return (
     <div className={styles.container}>
