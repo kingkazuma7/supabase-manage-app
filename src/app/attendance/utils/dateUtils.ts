@@ -25,9 +25,19 @@ export const formatDateToISOString = (date: Date): string => {
 
 /**
  * 時刻を HH:mm 形式の文字列に変換
+ * @param date - 変換する日付オブジェクト
+ * @returns HH:mm形式の時刻文字列、不正な日付の場合は '--:--' を返す
  */
 export const formatTimeString = (date: Date): string => {
-  return date.toLocaleTimeString(DATE_FORMAT.LOCALE, DATE_FORMAT.TIME);
+  try {
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      return '--:--';
+    }
+    return date.toLocaleTimeString(DATE_FORMAT.LOCALE, DATE_FORMAT.TIME);
+  } catch (e) {
+    console.error('時刻フォーマットエラー:', e);
+    return '--:--';
+  }
 };
 
 /**

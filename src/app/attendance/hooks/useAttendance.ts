@@ -59,12 +59,12 @@ export const useAttendance = (staffId: string | null) => {
       const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
       const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
       
-      // 月内の勤務時間を計算
-      const workTime = calculateWorkTimeForPeriod(
+      // 月内の実労働時間を計算
+      const workTime = calculateActualWorkTime(
         record.originalClockIn,
         record.originalClockOut!,
-        firstDayOfMonth,
-        lastDayOfMonth
+        record.breakStart || null,
+        record.breakEnd || null
       );
       
       return acc + getMinutesFromHHMM(workTime);
@@ -190,23 +190,43 @@ export const useAttendance = (staffId: string | null) => {
         setRecords(formattedRecords);
 
         // 本日の勤務時間設定
-        const todayRecord = attendanceData.find(record => 
-          new Date(record.clock_in).toISOString().split('T')[0] === todayIso
-        );
+        const todayRecord = attendanceData.find(record => {
+          try {
+            const recordDate = new Date(record.clock_in);
+            return recordDate.toISOString().split('T')[0] === todayIso;
+          } catch (e) {
+            console.error('日付変換エラー:', e);
+            return false;
+          }
+        });
 
         if (todayRecord) {
-          if (todayRecord.clock_out) {
-            setWorkTime(createDailyWorkTime(todayRecord, staffData.name));
-          } else {
-            const workTime: WorkTime = {
-              total: '勤務中',
-              actual: '計算中',
-              break: '00:00',
-              name: staffData.name,
-              clockIn: formatTimeString(new Date(todayRecord.clock_in)),
-              clockOut: '未退勤'
-            };
-            setWorkTime(workTime);
+          try {
+            if (todayRecord.clock_out) {
+              setWorkTime(createDailyWorkTime({
+                originalClockIn: todayRecord.clock_in,
+                originalClockOut: todayRecord.clock_out,
+                breakStart: todayRecord.break_start || null,
+                breakEnd: todayRecord.break_end || null
+              }, staffData.name));
+            } else {
+              const clockInDate = new Date(todayRecord.clock_in);
+              if (isNaN(clockInDate.getTime())) {
+                throw new Error('不正な日付形式です');
+              }
+              const workTime: WorkTime = {
+                total: '勤務中',
+                actual: '計算中',
+                break: '00:00',
+                name: staffData.name,
+                clockIn: formatTimeString(clockInDate),
+                clockOut: '未退勤'
+              };
+              setWorkTime(workTime);
+            }
+          } catch (e) {
+            console.error('勤務時間計算エラー:', e);
+            setError('勤務時間の計算に失敗しました');
           }
         }
 

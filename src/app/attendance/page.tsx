@@ -9,7 +9,9 @@ import { useAttendance } from './hooks/useAttendance'
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from './types'
 import { 
   calculateWorkTime, 
-  calculateActualWorkTime
+  calculateActualWorkTime,
+  getMinutesFromHHMM,
+  formatMinutesToTime
 } from './utils/calculations'
 import { formatDateWithWeekday } from './utils/dateUtils'
 
@@ -23,7 +25,7 @@ function AttendanceContent() {
     status,
     error,
     isTodayCompleted,
-    monthlyTotal,
+    monthlyTotal: monthlyTotalFromHook,
     viewYear,
     viewMonth,
     setViewYear,
@@ -41,10 +43,21 @@ function AttendanceContent() {
     return date.getFullYear() === viewYear && date.getMonth() === viewMonth;
   });
 
-  // 表示月の合計勤務時間
-  const filteredMonthlyTotal = monthlyTotal ? 
-    `${monthlyTotal.hours.toString().padStart(2, '0')}:${monthlyTotal.minutes.toString().padStart(2, '0')}` :
-    '00:00';
+  // 月次合計実労働時間を計算
+  const actualMonthlyTotal = filteredRecords.reduce((total, record) => {
+    if (record.clockOut && record.originalClockIn && record.originalClockOut) {
+      const workTime = calculateActualWorkTime(
+        record.originalClockIn,
+        record.originalClockOut,
+        record.breakStart,
+        record.breakEnd
+      );
+      return total + getMinutesFromHHMM(workTime);
+    }
+    return total;
+  }, 0);
+
+  const formattedMonthlyTotal = formatMinutesToTime(actualMonthlyTotal);
 
   return (
     <div className={styles.container}>
@@ -117,8 +130,8 @@ function AttendanceContent() {
             &gt;
           </button>
         </div>
-        <div className={styles.monthlyTotalInline}>
-          <strong>{viewMonth + 1}月合計勤務時間: {filteredMonthlyTotal}</strong>
+        <div className={styles.monthlyTotal}>
+          <h2>{viewMonth + 1}月合計勤務時間: {formattedMonthlyTotal}</h2>
         </div>
         {filteredRecords.length > 0 ? (
           <table className={styles.recordsTable}>
