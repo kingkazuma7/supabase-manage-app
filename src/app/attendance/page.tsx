@@ -182,7 +182,7 @@ function AttendanceContent() {
         </button>
         <button
           onClick={() => handleBreak('休憩開始')}
-          disabled={!status.isWorking || status.isOnBreak}
+          disabled={!status.isWorking || status.isOnBreak || status.isBreakCompleted}
           className={styles.buttonSecondary}
         >
           休憩開始

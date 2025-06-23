@@ -309,57 +309,89 @@ export const useAttendance = (staffId: string | null) => {
   
   const handleBreak = async (type: '休憩開始' | '休憩終了') => {
     try {
-      if (!staff) throw new Error(ATTENDANCE_ERRORS.NO_STAFF_INFO);
-      
+      if (!staffId) {
+        throw new Error(ATTENDANCE_ERRORS.NO_STAFF_INFO);
+      }
+
       const supabase = createClient();
-      const now = new Date();
       
-      const { data: allRecentRecords, error: recentRecordsError } = await supabase
+      // 1. 最新の勤怠記録を取得
+      const { data: latestRecord, error: fetchError } = await supabase
         .from('attendance')
-        .select('*')
-        .eq('staff_id', staff.id)
-        .order('clock_in', { ascending: false })
-        .limit(1);
-      
-      if (recentRecordsError) throw recentRecordsError;
-      
-      const latestRecord = allRecentRecords ? allRecentRecords[0] : null;
-      
-      if (!latestRecord || latestRecord.clock_out) throw new Error('勤務中の記録がありません。');
-      
+        .select('id, break_start, break_end, clock_in')
+        .eq('staff_id', staffId)
+        .is('clock_out', null)
+        .single();
+
+      if (fetchError) {
+        throw new Error(ATTENDANCE_ERRORS.FETCH_ERROR);
+      }
+
+      if (!latestRecord) {
+        throw new Error('勤務中の記録が見つかりません。');
+      }
+
+      const now = new Date();
+      const clockIn = new Date(latestRecord.clock_in);
+
+      // 2. 休憩状態のバリデーション
       if (type === '休憩開始') {
-        if (latestRecord.break_start && !latestRecord.break_end) {
+        if (latestRecord.break_start && latestRecord.break_end) {
           throw new Error(ATTENDANCE_ERRORS.BREAK_ALREADY_STARTED);
         }
         
-        const { error } = await supabase
-          .from('attendance')
-          .update({
-            break_start: now.toISOString()
-          })
-          .eq('id', latestRecord.id);
-          
-        if (error) throw error;
-      } else if (type === '休憩終了') {
-        if (!latestRecord.break_start || latestRecord.break_end) {
+        if (latestRecord.break_start && !latestRecord.break_end) {
+          throw new Error('既に休憩中です。');
+        }
+
+        // 出勤時刻より前の時刻での休憩開始を防止
+        if (now.getTime() < clockIn.getTime()) {
+          throw new Error('出勤時刻より前に休憩を開始することはできません。');
+        }
+      } else {
+        if (!latestRecord.break_start) {
           throw new Error(ATTENDANCE_ERRORS.NO_BREAK_RECORD);
         }
         
-        if (new Date(latestRecord.break_start).getTime() > now.getTime()) {
-          throw new Error(ATTENDANCE_ERRORS.INVALID_BREAK_END);
+        if (latestRecord.break_end) {
+          throw new Error('既に休憩は終了しています。');
         }
 
-        const { error } = await supabase
-          .from('attendance')
-          .update({ break_end: now.toISOString() })
-          .eq('id', latestRecord.id);
-          
-        if (error) throw error;
+        const breakStart = new Date(latestRecord.break_start);
+        if (now.getTime() < breakStart.getTime()) {
+          throw new Error(ATTENDANCE_ERRORS.INVALID_BREAK_END);
+        }
       }
-      
-      await fetchData();
+
+      // 3. 更新データの準備
+      const nowISOString = now.toISOString();
+      const updateData = type === '休憩開始' 
+        ? { break_start: nowISOString }
+        : { break_end: nowISOString };
+
+      // 4. データベース更新
+      const { error: updateError } = await supabase
+        .from('attendance')
+        .update(updateData)
+        .eq('id', latestRecord.id)
+        .single();
+
+      if (updateError) {
+        throw new Error('休憩状態の更新に失敗しました。');
+      }
+
+      // 5. 状態更新
+      setStatus(prev => ({
+        ...prev,
+        isOnBreak: type === '休憩開始',
+        breakStart: type === '休憩開始' ? nowISOString : prev.breakStart,
+        isBreakCompleted: type === '休憩終了'
+      }));
+
       setError(null);
+
     } catch (error) {
+      console.error('休憩処理エラー:', error);
       setError(error instanceof Error ? error.message : ATTENDANCE_ERRORS.FETCH_ERROR);
     }
   };
