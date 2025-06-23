@@ -7,144 +7,10 @@ import Link from 'next/link'
 import { insertAndValidateTestData, deleteTestData, testPatterns } from './testData'
 import { useAttendance } from './hooks/useAttendance'
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from './types'
-
-/**
- * 勤務時間の合計を計算する（出勤から退勤までの純粋な総時間）
- * @param {string} clockIn - 出勤時間（ISO形式）
- * @param {string} clockOut - 退勤時間（ISO形式）
- * @returns {string} 勤務時間（HH:mm形式）
- */
-const calculateWorkTime = (clockIn: string, clockOut: string): string => {
-  const start = new Date(clockIn);
-  const end = new Date(clockOut);
-  
-  const diffMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
-  
-  if (diffMinutes < 0) {
-    // 退勤時間が出勤時間より前の場合など、不正な場合は0を返す
-    return '00:00';
-  }
-
-  const hours = Math.floor(diffMinutes / 60);
-  const mins = diffMinutes % 60;
-  
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
-
-/**
- * 指定された期間 (periodStart - periodEnd) 内の勤務時間を計算する
- * 月をまたぐ勤務でも、指定期間内の時間のみを正確に集計します。
- * @param {string} clockIn - 出勤時間（ISO形式）
- * @param {string} clockOut - 退勤時間（ISO形式）
- * @param {Date} periodStart - 期間開始日 (Dateオブジェクト)
- * @param {Date} periodEnd - 期間終了日 (Dateオブジェクト)
- * @returns {string} 勤務時間（HH:mm形式）
- */
-const calculateWorkTimeForPeriod = (clockIn: string, clockOut: string, periodStart: Date, periodEnd: Date): string => {
-  const start = new Date(clockIn);
-  const end = new Date(clockOut);
-  
-  // 勤務開始と期間開始の遅い方
-  const effectiveStart = new Date(Math.max(start.getTime(), periodStart.getTime()));
-  // 勤務終了と期間終了の早い方
-  const effectiveEnd = new Date(Math.min(end.getTime(), periodEnd.getTime()));
-  
-  // 期間内に勤務がない場合や、期間が逆転している場合は00:00を返す
-  if (effectiveStart.getTime() >= effectiveEnd.getTime()) {
-      return '00:00';
-  }
-
-  const diffMinutes = Math.floor((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60));
-  
-  const hours = Math.floor(diffMinutes / 60);
-  const mins = diffMinutes % 60;
-  
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
-
-/**
- * 勤務時間の合計分数を取得するヘルパー関数
- * @param {string} timeString - HH:mm形式の文字列
- * @returns {number} 合計分数
- */
-const getMinutesFromHHMM = (timeString: string): number => {
-    const [hours, minutes] = timeString.split(':').map(Number);
-    return hours * 60 + minutes;
-};
-
-/**
- * 勤怠記録の整合性をチェックする
- * 連続した出勤打刻、退勤打刻なしの状態で退勤打刻などを検出します。
- * @param {Array<{clock_in: string; clock_out: string | null}>} records - 勤怠記録の配列
- * @returns {boolean} 整合性が取れている場合はtrue
- */
-const validateRecords = (records: { clock_in: string; clock_out: string | null }[]) => {
-  if (records.length === 0) return true;
-  
-  let hasUnclockedOut = false; // 未退勤の記録があるか
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
-    if (!record.clock_out) {
-      if (hasUnclockedOut) {
-        // 既に未退勤の記録があるのに、また未退勤の記録があった場合（不正）
-        return false;
-      }
-      hasUnclockedOut = true;
-    }
-  }
-  return true;
-};
-
-/**
- * 休憩時間の計算関数
- * @param {string} breakStart - 休憩開始時間（ISO形式）
- * @param {string} breakEnd - 休憩終了時間（ISO形式）
- * @returns {string} 休憩時間（HH:mm形式）
- */
-const calculateBreakTime = (breakStart: string | null, breakEnd: string | null): string => {
-  if (!breakStart || !breakEnd) return '-';
-  const start = new Date(breakStart);
-  const end = new Date(breakEnd);
-  let diffMinutes = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60));
-  if (diffMinutes < 0) diffMinutes = 0;
-  const hours = Math.floor(diffMinutes / 60);
-  const mins = diffMinutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-};
-
-/**
- * 実際の作業時間を計算する関数
- * @param {string} clockIn - 出勤時間（ISO形式）
- * @param {string} clockOut - 退勤時間（ISO形式）
- * @param {string | null} breakStart - 休憩開始時間（ISO形式）
- * @param {string | null} breakEnd - 休憩終了時間（ISO形式）
- * @returns {string} 実際の作業時間（HH:mm形式）
- */
-const calculateActualWorkTime = (
-  clockIn: string,
-  clockOut: string,
-  breakStart: string | null,
-  breakEnd: string | null
-): string => {
-  const start = new Date(clockIn);
-  const end = new Date(clockOut);
-  let totalMinutes = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60)); // 出勤から退勤までの純粋な総時間
-  if (totalMinutes < 0) totalMinutes = 0; // 出勤時間が退勤時間より前の場合は0を返す 
-  let breakMinutes = 0;
-  if (breakStart && breakEnd) {
-    const bStart = new Date(breakStart);
-    const bEnd = new Date(breakEnd);
-    breakMinutes = Math.ceil((bEnd.getTime() - bStart.getTime()) / (1000 * 60));
-    if (breakMinutes < 0) breakMinutes = 0;
-  }
-  
-  let actualMinutes = totalMinutes - breakMinutes;
-  
-  if (actualMinutes < 0) actualMinutes = 0;
-  const hours = Math.floor(actualMinutes / 60);
-  const mins = actualMinutes % 60;
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}; 
+import { 
+  calculateWorkTime, 
+  calculateActualWorkTime
+} from './utils/calculations'
 
 function AttendanceContent() {
   const searchParams = useSearchParams()
@@ -281,7 +147,7 @@ function AttendanceContent() {
                   <td className={styles.recordTime}>{record.clockOut || '退勤未記録'}</td>
                   <td className={styles.recordTime}>
                     {record.breakStart && record.breakEnd
-                      ? calculateBreakTime(record.breakStart, record.breakEnd)
+                      ? calculateWorkTime(record.breakStart, record.breakEnd)
                       : '-'}
                   </td>
                   <td className={styles.recordWorkTime}>
@@ -301,66 +167,68 @@ function AttendanceContent() {
             </tbody>
           </table>
         ) : (
-          <p>記録がありません</p>
+          <p className={styles.noRecords}>記録がありません</p>
         )}
       </div>
 
       <div className={styles.actionButtons}>
         <button
-          className={styles.buttonPrimary}
           onClick={() => handleAttendance('出勤')}
-          disabled={status.status === '勤務中' || isTodayCompleted}
+          disabled={status.isWorking || isTodayCompleted}
+          className={styles.buttonPrimary}
         >
           出勤
         </button>
         <button
-          className={styles.buttonDanger}
           onClick={() => handleAttendance('退勤')}
-          disabled={status.status === '退勤済み' || !status.isWorking}
+          disabled={!status.isWorking || status.isOnBreak}
+          className={styles.buttonDanger}
         >
           退勤
         </button>
-        <button 
-          className={styles.buttonSecondary} 
+        <button
           onClick={() => handleBreak('休憩開始')}
-          disabled={!status.isWorking || status.isOnBreak || status.isBreakCompleted}
+          disabled={!status.isWorking || status.isOnBreak}
+          className={styles.buttonSecondary}
         >
           休憩開始
         </button>
-        <button 
-          className={styles.buttonSecondary} 
+        <button
           onClick={() => handleBreak('休憩終了')}
-          disabled={!status.isWorking || !status.isOnBreak}
+          disabled={!status.isOnBreak}
+          className={styles.buttonSecondary}
         >
           休憩終了
         </button>
       </div>
 
-      {staff && (
-        <div className={styles.testButtons}>
-          <div className={styles.testPatterns}>
-            <h3>テストパターン（本日分を上書き）</h3>
-            {testPatterns.map(pattern => (
-              <button 
-                key={pattern.name}
-                className={styles.buttonTest}
-                onClick={() => insertAndValidateTestData(staff.id, pattern.name)}
-              >
-                {pattern.name}
-                <span className={styles.patternDescription}>{pattern.description}</span>
-              </button>
-            ))}
+      {process.env.NODE_ENV === 'development' && (
+        <div className={styles.testActions}>
+          <h3>テストデータ操作（開発環境のみ）</h3>
+          <div className={styles.testButtons}>
+            <button 
+              onClick={() => insertAndValidateTestData(staffId || '', 'normalWithBreak')}
+              className={styles.buttonTest}
+            >
+              通常パターン
+            </button>
+            <button 
+              onClick={() => insertAndValidateTestData(staffId || '', 'multiDayPattern')}
+              className={styles.buttonTest}
+            >
+              3ヶ月分
+            </button>
+            <button 
+              onClick={() => deleteTestData(staffId || '')}
+              className={styles.buttonTest}
+            >
+              テストデータ削除
+            </button>
           </div>
-          <button 
-            className={styles.buttonTest}
-            onClick={() => deleteTestData(staff.id)}
-          >
-            テストデータ削除（本日分）
-          </button>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 /**
@@ -369,8 +237,8 @@ function AttendanceContent() {
  */
 export default function AttendancePage() {
   return (
-    <Suspense fallback={<div>読み込み中...</div>}>
+    <Suspense fallback={<div className={styles.loading}>読み込み中...</div>}>
       <AttendanceContent />
     </Suspense>
-  )
+  );
 }
