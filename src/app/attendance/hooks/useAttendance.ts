@@ -1,22 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from '../types';
-import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords, calculateActualWorkTime } from '../utils/calculations';
+import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords, calculateActualWorkTime, formatMinutesToTime } from '../utils/calculations';
 import { formatTimeString, formatDateJP, DATE_FORMAT } from '../utils/dateUtils';
 import { TIME, ATTENDANCE_ERRORS, WORK_STATUS } from '../constants';
 
 // エラーメッセージの定数を削除（constants.tsに移動済み）
-
-/**
- * 分を「HH:mm」形式に変換する
- * @param totalMinutes - 合計分数
- * @returns HH:mm形式の文字列
- */
-const formatMinutesToTime = (totalMinutes: number): string => {
-  const hours = Math.floor(totalMinutes / TIME.MINUTES_IN_HOUR);
-  const minutes = totalMinutes % TIME.MINUTES_IN_HOUR;
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-};
 
 /**
  * 勤怠管理のカスタムフック
@@ -93,31 +82,26 @@ export const useAttendance = (staffId: string | null) => {
    * 日次の勤務情報を作成する
    */
   const createDailyWorkTime = (
-    record: {
-      clock_in: string;
-      clock_out: string;
-      break_start: string | null;
-      break_end: string | null;
-    },
+    record: Pick<AttendanceRecord, 'originalClockIn' | 'originalClockOut' | 'breakStart' | 'breakEnd'>,
     staffName: string
   ): WorkTime => {
-    const recordClockIn = new Date(record.clock_in);
-    const recordClockOut = new Date(record.clock_out);
+    const recordClockIn = new Date(record.originalClockIn);
+    const recordClockOut = new Date(record.originalClockOut!);
 
     // 総勤務時間を計算（休憩時間を含む）
-    const totalWorkTime = calculateWorkTime(record.clock_in, record.clock_out);
+    const totalWorkTime = calculateWorkTime(record.originalClockIn, record.originalClockOut!);
 
     // 実労働時間を計算（休憩時間を差し引く）
     const actualWorkTime = calculateActualWorkTime(
-      record.clock_in,
-      record.clock_out,
-      record.break_start,
-      record.break_end
+      record.originalClockIn,
+      record.originalClockOut!,
+      record.breakStart,
+      record.breakEnd
     );
 
     // 休憩時間を計算
-    const breakTime = record.break_start && record.break_end ?
-      calculateWorkTime(record.break_start, record.break_end) : '00:00';
+    const breakTime = record.breakStart && record.breakEnd ?
+      calculateWorkTime(record.breakStart, record.breakEnd) : '00:00';
 
     return {
       total: totalWorkTime,

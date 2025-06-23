@@ -25,17 +25,18 @@ export const calculateWorkTime = (clockIn: string, clockOut: string): string => 
  * @param totalMinutes - 合計分数
  * @returns HH:mm形式の文字列
  */
-const formatMinutesToTime = (totalMinutes: number): string => {
+export const formatMinutesToTime = (totalMinutes: number): string => {
   const hours = Math.floor(totalMinutes / TIME.MINUTES_IN_HOUR);
   const minutes = totalMinutes % TIME.MINUTES_IN_HOUR;
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 };
 
 /**
- * 休憩時間を計算する
+ * 休憩時間を計算する（内部使用）
  * 休憩開始から休憩終了までの時間を計算し、分単位で返す
  * 分単位は切り上げで統一
  * 
+ * @private
  * @param {string} breakStart - 休憩開始時間（ISO形式）
  * @param {string} breakEnd - 休憩終了時間（ISO形式）
  * @returns {number} 休憩時間（分）
