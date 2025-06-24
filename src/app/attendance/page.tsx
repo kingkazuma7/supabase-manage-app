@@ -13,7 +13,12 @@ import {
   getMinutesFromHHMM,
   formatMinutesToTime
 } from './utils/calculations'
-import { formatDateWithWeekday } from './utils/dateUtils'
+import { calculateWageForTimeRange } from './utils/wageCalculator'
+import { formatDateWithWeekday, formatTimeString } from './utils/dateUtils'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/app/hooks/useAuth'
+import { supabase } from '@/app/utils/supabaseClient'
 
 function AttendanceContent() {
   const searchParams = useSearchParams()
@@ -59,80 +64,74 @@ function AttendanceContent() {
 
   const formattedMonthlyTotal = formatMinutesToTime(actualMonthlyTotal);
 
+  // 月次合計給与を計算
+  const monthlyWageTotal = filteredRecords.reduce((total, record) => {
+    if (record.clockOut && record.originalClockIn && record.originalClockOut) {
+      return total + calculateWageForTimeRange(
+        new Date(record.originalClockIn),
+        new Date(record.originalClockOut),
+        record.breakStart ? new Date(record.breakStart) : null,
+        record.breakEnd ? new Date(record.breakEnd) : null
+      );
+    }
+    return total;
+  }, 0);
+
   return (
     <div className={styles.container}>
+      {error && <div className={styles.error}>{error}</div>}
+      
       <div className={styles.header}>
-        <h1>{staff.name}さんの勤怠管理</h1>
-        <Link href="/">トップへ戻る</Link>
+        <h1>{staff.name}さんの勤怠記録</h1>
+        <div className={styles.status}>
+          {status.isWorking && <span className={styles.working}>{status.message}</span>}
+        </div>
       </div>
 
-      {error && (
-        <div className={styles.error}>
-          {error}
-          {error.includes('不整合') && (
-            <button onClick={fixData} className={styles.fixButton}>
-              データ修復（重複出勤記録の解消）
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className={styles.status}>
-        <h2>現在のステータス</h2>
-        {status.status ? (
-          <p className={styles[status.status === '勤務中' ? 'working' : 'notWorking']}>
-            {status.status}
-          </p>
-        ) : (
-          <p className={styles.noStatus}>-</p>
-        )}
+      <div className={styles.monthSelector}>
+        <button
+          onClick={() => {
+            if (viewMonth === 0) {
+              setViewYear(viewYear - 1);
+              setViewMonth(11);
+            } else {
+              setViewMonth(viewMonth - 1);
+            }
+          }}
+          className={styles.monthButton}
+        >
+          ←
+        </button>
+        <span className={styles.currentMonth}>
+          {viewYear}年{viewMonth + 1}月
+        </span>
+        <button
+          onClick={() => {
+            if (viewMonth === 11) {
+              setViewYear(viewYear + 1);
+              setViewMonth(0);
+            } else {
+              setViewMonth(viewMonth + 1);
+            }
+          }}
+          className={styles.monthButton}
+        >
+          →
+        </button>
       </div>
 
-      {workTime && (
-        <div className={styles.workTime}>
-          <h2>本日の勤務時間</h2>
-          <p>{workTime.name}さん</p>
-          <p>勤務時間: {workTime.total}</p>
-          <p>出勤: {workTime.clockIn}</p>
-          <p>退勤: {workTime.clockOut}</p>
+      <div className={styles.monthlyTotal}>
+        <div>
+          <span>月間合計時間：</span>
+          <span className={styles.totalTime}>{formattedMonthlyTotal}</span>
         </div>
-      )}
+        <div>
+          <span>月間合計給与：</span>
+          <span className={styles.totalWage}>¥{monthlyWageTotal.toLocaleString()}</span>
+        </div>
+      </div>
 
       <div className={styles.records}>
-        <div className={styles.monthSwitchRow}>
-          <button
-            className={styles.monthArrow}
-            onClick={() => {
-              if (viewMonth === 0) {
-                setViewYear(viewYear - 1);
-                setViewMonth(11);
-              } else {
-                setViewMonth(viewMonth - 1);
-              }
-            }}
-            aria-label="前の月"
-          >
-            &lt;
-          </button>
-          <h2>{viewYear}年{viewMonth + 1}月の記録</h2>
-          <button
-            className={styles.monthArrow}
-            onClick={() => {
-              if (viewMonth === 11) {
-                setViewYear(viewYear + 1);
-                setViewMonth(0);
-              } else {
-                setViewMonth(viewMonth + 1);
-              }
-            }}
-            aria-label="次の月"
-          >
-            &gt;
-          </button>
-        </div>
-        <div className={styles.monthlyTotal}>
-          <h2>{viewMonth + 1}月合計勤務時間: {formattedMonthlyTotal}</h2>
-        </div>
         {filteredRecords.length > 0 ? (
           <table className={styles.recordsTable}>
             <thead>
@@ -142,29 +141,52 @@ function AttendanceContent() {
                 <th>終了</th>
                 <th>休憩</th>
                 <th>作業時間</th>
+                <th>給与</th>
               </tr>
             </thead>
             <tbody>
               {filteredRecords.map((record, i) => (
-                <tr key={i} className={styles.recordRow}>
+                <tr key={record.id} className={styles.recordRow}>
                   <td className={styles.recordDate}>
                     {formatDateWithWeekday(new Date(record.originalClockIn))}
                   </td>
-                  <td className={styles.recordTime}>{record.clockIn}</td>
-                  <td className={styles.recordTime}>{record.clockOut || '退勤未記録'}</td>
                   <td className={styles.recordTime}>
-                    {record.breakStart && record.breakEnd
-                      ? calculateWorkTime(record.breakStart, record.breakEnd)
-                      : '-'}
+                    {formatTimeString(new Date(record.originalClockIn))}
+                  </td>
+                  <td className={styles.recordTime}>
+                    {record.clockOut ? (
+                      formatTimeString(new Date(record.originalClockOut!))
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className={styles.recordBreak}>
+                    {record.breakStart && record.breakEnd ? (
+                      `${formatTimeString(new Date(record.breakStart))} - ${formatTimeString(new Date(record.breakEnd))}`
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   <td className={styles.recordWorkTime}>
-                    {record.clockOut && record.originalClockIn && record.originalClockOut ? (
+                    {record.clockOut ? (
                       calculateActualWorkTime(
                         record.originalClockIn,
-                        record.originalClockOut,
+                        record.originalClockOut!,
                         record.breakStart,
                         record.breakEnd
                       )
+                    ) : (
+                      '-'
+                    )}
+                  </td>
+                  <td className={styles.recordWage}>
+                    {record.clockOut && record.originalClockIn && record.originalClockOut ? (
+                      `¥${calculateWageForTimeRange(
+                        new Date(record.originalClockIn),
+                        new Date(record.originalClockOut),
+                        record.breakStart ? new Date(record.breakStart) : null,
+                        record.breakEnd ? new Date(record.breakEnd) : null
+                      ).toLocaleString()}`
                     ) : (
                       '-'
                     )}
@@ -210,41 +232,59 @@ function AttendanceContent() {
       </div>
 
       {process.env.NODE_ENV === 'development' && (
-        <div className={styles.testActions}>
-          <h3>テストデータ操作（開発環境のみ）</h3>
-          <div className={styles.testButtons}>
-            <button 
-              onClick={() => insertAndValidateTestData(staffId || '', '休憩付き通常勤務')}
-              className={styles.buttonTest}
-            >
-              通常パターン
-            </button>
-            <button 
-              onClick={() => insertAndValidateTestData(staffId || '', '複数日')}
-              className={styles.buttonTest}
-            >
-              3ヶ月分
-            </button>
-            <button 
-              onClick={() => deleteTestData(staffId || '')}
-              className={styles.buttonTest}
-            >
-              テストデータ削除
-            </button>
-          </div>
+        <div className={styles.testSection}>
+          <details>
+            <summary>テストデータ操作（開発環境のみ）</summary>
+            <div className={styles.testActions}>
+              <div className={styles.testButtons}>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '休憩付き通常勤務')}
+                  className={styles.buttonTest}
+                >
+                  通常勤務パターン
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '夜勤休憩付き')}
+                  className={styles.buttonTest}
+                >
+                  夜勤パターン
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '日付跨ぎ休憩付き')}
+                  className={styles.buttonTest}
+                >
+                  日付跨ぎパターン
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '複数日')}
+                  className={styles.buttonTest}
+                >
+                  複数日パターン
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分')}
+                  className={styles.buttonTest}
+                >
+                  3ヶ月分データ
+                </button>
+                <button 
+                  onClick={() => deleteTestData(staffId || '')}
+                  className={styles.buttonDanger}
+                >
+                  テストデータ削除
+                </button>
+              </div>
+            </div>
+          </details>
         </div>
       )}
     </div>
   );
 }
 
-/**
- * 勤怠管理ページのルートコンポーネント
- * @returns {JSX.Element} Suspenseでラップされた勤怠管理画面
- */
 export default function AttendancePage() {
   return (
-    <Suspense fallback={<div className={styles.loading}>読み込み中...</div>}>
+    <Suspense fallback={<div>Loading...</div>}>
       <AttendanceContent />
     </Suspense>
   );

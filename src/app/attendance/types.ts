@@ -12,6 +12,10 @@ export type Staff = {
  * 勤怠記録の型定義
  */
 export type AttendanceRecord = {
+  /** 記録ID */
+  id: string;
+  /** スタッフID */
+  staffId: string;
   /** 記録日付（YYYY/MM/DD形式） */
   date: string;
   /** 出勤時間（HH:mm形式） */
@@ -28,6 +32,10 @@ export type AttendanceRecord = {
   breakStart: string | null;
   /** 休憩終了時間（ISO形式） */
   breakEnd: string | null;
+  /** 実労働時間（HH:mm形式） */
+  actualWorkTime?: string;
+  /** 賃金（円） */
+  wage?: number;
 };
 
 /**
@@ -60,6 +68,8 @@ export type AttendanceStatus = {
   lastClockOut: string | null;
   /** 勤怠ステータス */
   status: '勤務中' | '退勤済み' | null;
+  /** ステータスメッセージ */
+  message: string | null;
   /** 休憩中かどうか */
   isOnBreak: boolean;
   /** 休憩開始時間（ISO形式） */

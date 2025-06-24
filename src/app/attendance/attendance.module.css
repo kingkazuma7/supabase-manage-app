@@ -432,59 +432,53 @@
 }
 
 .monthlyTotal {
-  margin: 20px 0;
-  padding: 15px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  text-align: center;
-  font-weight: bold;
-  color: #333;
-}
-
-.monthlyTotalInline {
-  margin: 1rem 0;
+  display: flex;
+  justify-content: space-between;
   padding: 1rem;
-  background: var(--primary-alpha-100);
+  margin: 1rem 0;
+  background: var(--background-secondary);
   border-radius: 0.5rem;
-  text-align: center;
-  font-size: 1.1rem;
-  color: var(--primary);
-  border: 1px solid var(--primary-alpha-200);
+  border: 1px solid var(--border-color);
 }
 
-.monthSwitchRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.monthSwitchRow h2 {
-  margin: 0;
-  font-size: 1.3rem;
+.totalTime {
+  font-family: var(--font-geist-mono);
   font-weight: 600;
-  color: var(--foreground);
+  color: var(--primary);
+  margin-left: 0.5rem;
 }
 
-.monthArrow {
-  background: var(--primary-alpha-100);
-  color: var(--primary);
-  border: none;
-  border-radius: 50%;
-  width: 2.5rem;
-  height: 2.5rem;
-  font-size: 1.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
+.totalWage {
+  font-family: var(--font-geist-mono);
+  font-weight: 600;
+  color: var(--success);
+  margin-left: 0.5rem;
+}
+
+.currentMonth {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 1rem;
+}
+
+.monthSelector {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 1rem 0;
 }
 
-.monthArrow:hover {
-  background: var(--primary-alpha-200);
+.monthButton {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background: var(--background-secondary);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.monthButton:hover {
+  background: var(--background-hover);
 }
 
 .buttonSecondary {
@@ -508,4 +502,50 @@
   color: #6b7280;
   border-color: #d1d5db;
   cursor: not-allowed;
+}
+
+.testSection {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: var(--background-secondary);
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+}
+
+.testSection summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.5rem 0;
+}
+
+.testSection summary:hover {
+  color: var(--text-primary);
+}
+
+.testActions {
+  margin-top: 1rem;
+}
+
+.testButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.buttonTest {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  background: var(--background-secondary);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buttonTest:hover {
+  background: var(--background-hover);
+  border-color: var(--primary);
+  color: var(--primary);
 }

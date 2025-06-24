@@ -24,6 +24,8 @@ export const WAGE_RATES = {
   CROSS_DAY: 2000,
 } as const;
 
+export type WageRate = typeof WAGE_RATES[keyof typeof WAGE_RATES];
+
 /**
  * エラーメッセージ
  */
