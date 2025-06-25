@@ -24,25 +24,45 @@ describe('calculateWageForTimeRange', () => {
     });
   });
 
-  // describe('夜間時給のケース（22:00-24:00, ¥1,875/時）', () => {
-  //   test('夜間時間帯のみ（22:00-24:00）', () => {
-  //     const start = createDate(22);
-  //     const end = createDate(24);
-  //     const wage = calculateWageForTimeRange(start, end);
-  //     expect(wage).toBe(2 * 1875); // 2時間 × ¥1,875
-  //   });
-
-  //   test('夜間時間帯の境界値（21:45-22:15）', () => {
-  //     const start = createDate(21, 45);
-  //     const end = createDate(22, 15);
-  //     const expectedWage = Math.round(
-  //       (0.25 * 1500) + // 21:45-22:00 (15分) × ¥1,500
-  //       (0.25 * 1875)   // 22:00-22:15 (15分) × ¥1,875
-  //     );
-  //     const wage = calculateWageForTimeRange(start, end);
-  //     expect(wage).toBe(expectedWage);
-  //   });
-  // });
+  describe('夜間時給のケース（22:00-24:00, ¥1,875/時）', () => {
+    // ヘルパー関数：日付オブジェクトを作成 (再掲)
+    const createDate = (hours: number, minutes: number = 0) => {
+      const date = new Date('2024-01-15');  // 固定の日付を使用
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+  
+    test('夜間時間帯のみ（22:00-24:00）', () => {
+      const start = createDate(22);
+      const end = createDate(24);
+      const wage = calculateWageForTimeRange(start, end);
+      const expectedWage = 2 * 1875; // 期待値: 2時間 × ¥1,875 = ¥3,750
+  
+      // テスト結果出力に追加
+      // console.log(`  夜間時間帯のみ (22:00-24:00):`);
+      // console.log(`    期待される給与: ¥${expectedWage}`);
+      // console.log(`    実際の計算結果: ¥${wage}`);
+  
+      expect(wage).toBe(expectedWage);
+    });
+  
+    test('夜間時間帯の境界値（21:45-22:15）', () => {
+      const start = createDate(21, 45);
+      const end = createDate(22, 15);
+      const expectedWage = Math.round(
+        (0.25 * 1500) + // 21:45-22:00 (15分) × ¥1,500
+        (0.25 * 1875)   // 22:00-22:15 (15分) × ¥1,875
+      );
+      const wage = calculateWageForTimeRange(start, end);
+  
+      // テスト結果出力に追加
+      // console.log(`  夜間時間帯の境界値 (21:45-22:15):`);
+      // console.log(`    期待される給与: ¥${expectedWage}`);
+      // console.log(`    実際の計算結果: ¥${wage}`);
+  
+      expect(wage).toBe(expectedWage);
+    });
+  });
 
   // describe('深夜時給のケース（24:00-27:00, ¥2,000/時）', () => {
   //   test('深夜時間帯のみ（0:00-3:00）', () => {
