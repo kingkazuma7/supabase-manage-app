@@ -52,23 +52,12 @@ const getNextRateChangeTime = (currentTime: Date): Date => {
 };
 
 /**
- * 指定された時間帯の給与を計算する
- * @param startTime 開始時間
- * @param endTime 終了時間
- * @param breakStart 休憩開始時間（オプション）
- * @param breakEnd 休憩終了時間（オプション）
- * @returns 計算された給与（円）
+ * 日付跨ぎを考慮して終了時刻を調整する
+ * @param startTime 開始時刻
+ * @param endTime 終了時刻
+ * @returns 調整された終了時刻
  */
-export const calculateWageForTimeRange = (
-  startTime: Date,
-  endTime: Date,
-  breakStart?: Date | null,
-  breakEnd?: Date | null
-): number => {
-  let totalWage = 0;
-  let currentTime = new Date(startTime);
-
-  // 日付跨ぎの場合の処理
+const adjustEndTimeForDateCrossing = (startTime: Date, endTime: Date): Date => {
   const startHour = startTime.getHours();
   const endHour = endTime.getHours();
   const endMinutes = endTime.getMinutes();
@@ -87,6 +76,29 @@ export const calculateWageForTimeRange = (
     // 同日の場合
     adjustedEndTime.setDate(startTime.getDate());
   }
+
+  return adjustedEndTime;
+};
+
+/**
+ * 指定された時間帯の給与を計算する
+ * @param startTime 開始時間
+ * @param endTime 終了時間
+ * @param breakStart 休憩開始時間（オプション）
+ * @param breakEnd 休憩終了時間（オプション）
+ * @returns 計算された給与（円）
+ */
+export const calculateWageForTimeRange = (
+  startTime: Date,
+  endTime: Date,
+  breakStart?: Date | null,
+  breakEnd?: Date | null
+): number => {
+  let totalWage = 0;
+  let currentTime = new Date(startTime);
+
+  // 日付跨ぎを考慮して終了時刻を調整
+  const adjustedEndTime = adjustEndTimeForDateCrossing(startTime, endTime);
 
   while (currentTime < adjustedEndTime) {
     // 次の時給レート変更時刻または勤務終了時刻のいずれか早い方
