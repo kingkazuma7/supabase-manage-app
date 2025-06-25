@@ -1,6 +1,56 @@
 import { WAGE_RATES } from '../constants';
 
 /**
+ * 時給レートを決定する
+ * @param time 対象時刻
+ * @returns 適用される時給レート
+ */
+const determineHourlyWage = (time: Date): number => {
+  const hour = time.getHours();
+  
+  switch (true) {
+    // 深夜時給（0:00-3:00）
+    case hour >= 0 && hour < 3:
+      return WAGE_RATES.CROSS_DAY;
+    // 夜間時給（22:00-24:00）
+    case hour >= 22:
+      return WAGE_RATES.NIGHT;
+    // 通常時給（その他の時間帯）
+    default:
+      return WAGE_RATES.NORMAL;
+  }
+};
+
+/**
+ * 次の時給レート変更時刻を取得する
+ * @param currentTime 現在時刻
+ * @returns 次の時給レート変更時刻
+ */
+const getNextRateChangeTime = (currentTime: Date): Date => {
+  const hour = currentTime.getHours();
+  const nextTime = new Date(currentTime);
+  
+  switch (true) {
+    // 22:00前の場合、次は22:00
+    case hour < 22:
+      nextTime.setHours(22, 0, 0, 0);
+      break;
+    // 22:00-23:59の場合、次は0:00
+    case hour >= 22:
+      nextTime.setHours(24, 0, 0, 0);
+      break;
+    // 0:00-2:59の場合、次は3:00
+    case hour >= 0 && hour < 3:
+      nextTime.setHours(3, 0, 0, 0);
+      break;
+    default:
+      // 次の時間の開始時刻
+      nextTime.setHours(hour + 1, 0, 0, 0);
+  }
+  return nextTime;
+};
+
+/**
  * 指定された時間帯の給与を計算する
  * @param startTime 開始時間
  * @param endTime 終了時間
@@ -18,14 +68,9 @@ export const calculateWageForTimeRange = (
   let currentTime = new Date(startTime);
 
   while (currentTime < endTime) {
-    const nextHour = new Date(currentTime);
-    nextHour.setHours(nextHour.getHours() + 1); // 一時間進める
-    nextHour.setMinutes(0); // 分を0にする
-    nextHour.setSeconds(0); // 秒を0にする
-    nextHour.setMilliseconds(0); // ミリ秒を0にする
-
-    // 現在の時間帯の終了時刻（次の時間帯開始または勤務終了のいずれか早い方）
-    const slotEndTime = new Date(Math.min(nextHour.getTime(), endTime.getTime()));
+    // 次の時給レート変更時刻または勤務終了時刻のいずれか早い方
+    const nextChangeTime = getNextRateChangeTime(currentTime);
+    const slotEndTime = new Date(Math.min(nextChangeTime.getTime(), endTime.getTime()));
     
     // 休憩時間中はスキップ
     if (breakStart && breakEnd && 
@@ -47,20 +92,8 @@ export const calculateWageForTimeRange = (
       workTimeInSlot -= breakTimeInSlot;
     }
 
-    // 時給の決定
-    let hourlyWage = WAGE_RATES.NORMAL;
-    const hour = currentTime.getHours();
-    
-    // 日付跨ぎの場合（0時〜3時）
-    if (hour >= 0 && hour < 3) {
-      hourlyWage = WAGE_RATES.CROSS_DAY;
-    }
-    // 夜間時給（22時〜24時）
-    else if (hour >= 22) {
-      hourlyWage = WAGE_RATES.NIGHT;
-    }
-
-    // 該当時間帯の給与を加算
+    // 時給レートを決定して給与を計算
+    const hourlyWage = determineHourlyWage(currentTime);
     totalWage += workTimeInSlot * hourlyWage;
 
     // 次の時間帯へ
