@@ -19,10 +19,10 @@ export const calculateWageForTimeRange = (
 
   while (currentTime < endTime) {
     const nextHour = new Date(currentTime);
-    nextHour.setHours(nextHour.getHours() + 1);
-    nextHour.setMinutes(0);
-    nextHour.setSeconds(0);
-    nextHour.setMilliseconds(0);
+    nextHour.setHours(nextHour.getHours() + 1); // 一時間進める
+    nextHour.setMinutes(0); // 分を0にする
+    nextHour.setSeconds(0); // 秒を0にする
+    nextHour.setMilliseconds(0); // ミリ秒を0にする
 
     // 現在の時間帯の終了時刻（次の時間帯開始または勤務終了のいずれか早い方）
     const slotEndTime = new Date(Math.min(nextHour.getTime(), endTime.getTime()));
