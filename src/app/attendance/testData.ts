@@ -382,6 +382,105 @@ const threeMonthPattern: TestPattern = {
 };
 
 /**
+ * 週休3日のアルバイトパターン（2ヶ月分）
+ */
+const partTimePattern: TestPattern = {
+  name: '週休3日アルバイト',
+  description: '2ヶ月分の週休3日アルバイトパターン（火水木のみ勤務、当日より過去分）',
+  generate: () => {
+    const data: {
+      clock_in: string;
+      clock_out: string;
+      break_start: string;
+      break_end: string;
+      expected_wage: number;
+    }[] = [];
+    
+    const today = new Date();
+    
+    // 2ヶ月前の日付を取得
+    const startDate = new Date(today);
+    startDate.setMonth(today.getMonth() - 2);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // 開始日から当日まで1日ずつ処理
+    const processDate = (baseDate: Date) => {
+      const currentDate = new Date(baseDate);
+      const dayOfWeek = currentDate.getDay(); // 0=日曜日, 6=土曜日
+      
+      // 火(2)・水(3)・木(4)のみ勤務
+      if (dayOfWeek >= 2 && dayOfWeek <= 4) {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const date = currentDate.getDate();
+        
+        let workSchedule: {
+          clockIn: Date;
+          clockOut: Date;
+          breakStart: Date;
+          breakEnd: Date;
+          expectedWage: number;
+        };
+        
+        switch (dayOfWeek) {
+          case 2: // 火曜：通常勤務 10:00-19:00
+            workSchedule = {
+              clockIn: new Date(year, month, date, 10, 0),
+              clockOut: new Date(year, month, date, 19, 0),
+              breakStart: new Date(year, month, date, 14, 0),
+              breakEnd: new Date(year, month, date, 15, 0),
+              expectedWage: 8 * 1500 // 実働8時間
+            };
+            break;
+            
+          case 3: // 水曜：夜勤 17:00-22:00
+            workSchedule = {
+              clockIn: new Date(year, month, date, 17, 0),
+              clockOut: new Date(year, month, date, 22, 0),
+              breakStart: new Date(year, month, date, 19, 30),
+              breakEnd: new Date(year, month, date, 20, 0),
+              expectedWage: Math.round(4.5 * 1500) // 実働4.5時間
+            };
+            break;
+            
+          case 4: // 木曜：早朝勤務 7:00-16:00
+            workSchedule = {
+              clockIn: new Date(year, month, date, 7, 0),
+              clockOut: new Date(year, month, date, 16, 0),
+              breakStart: new Date(year, month, date, 11, 0),
+              breakEnd: new Date(year, month, date, 12, 0),
+              expectedWage: 8 * 1500 // 実働8時間
+            };
+            break;
+            
+          default:
+            return;
+        }
+        
+        data.push({
+          clock_in: workSchedule.clockIn.toISOString(),
+          clock_out: workSchedule.clockOut.toISOString(),
+          break_start: workSchedule.breakStart.toISOString(),
+          break_end: workSchedule.breakEnd.toISOString(),
+          expected_wage: workSchedule.expectedWage
+        });
+      }
+    };
+    
+    // 開始日から当日まで1日ずつ処理
+    for (
+      const currentDate = new Date(startDate);
+      currentDate <= today;
+      currentDate.setDate(currentDate.getDate() + 1)
+    ) {
+      processDate(currentDate);
+    }
+    
+    return data;
+  }
+};
+
+/**
  * 利用可能なテストパターン
  */
 export const testPatterns: TestPattern[] = [
@@ -395,7 +494,8 @@ export const testPatterns: TestPattern[] = [
   multiDayPattern,
   crossMonthPattern,
   fullMonthPattern,
-  threeMonthPattern
+  threeMonthPattern,
+  partTimePattern
 ]
 
 /**
