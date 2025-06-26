@@ -151,47 +151,59 @@ const crossDayPattern: TestPattern = {
  */
 const multiDayPattern: TestPattern = {
   name: '複数日',
-  description: '3日分の勤務パターン（全て休憩付き）',
+  description: '3日分の勤務パターン（全て休憩付き、過去3日分）',
   generate: () => {
-    const today = new Date()
-    const data = []
+    const data = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 今日の0時を基準にする
     
-    // 1日目：通常勤務（今日）
-    data.push({
-      clock_in: new Date(today.setHours(9, 0, 0)).toISOString(),
-      clock_out: new Date(today.setHours(18, 0, 0)).toISOString(),
-      break_start: new Date(today.setHours(12, 0, 0)).toISOString(),
-      break_end: new Date(today.setHours(13, 0, 0)).toISOString(),
-      expected_wage: 8 * 1500 // 実働8時間
-    })
+    // 3日前から1日前までのデータを生成
+    for (let i = 3; i > 0; i--) {
+      const targetDate = new Date(today);
+      targetDate.setDate(today.getDate() - i); // i日前の日付
+      
+      switch (i) {
+        case 3: // 3日前：通常勤務
+          data.push({
+            clock_in: new Date(targetDate.setHours(9, 0, 0)).toISOString(),
+            clock_out: new Date(targetDate.setHours(18, 0, 0)).toISOString(),
+            break_start: new Date(targetDate.setHours(12, 0, 0)).toISOString(),
+            break_end: new Date(targetDate.setHours(13, 0, 0)).toISOString(),
+            expected_wage: 8 * 1500 // 実働8時間
+          });
+          break;
+          
+        case 2: // 2日前：夜勤
+          data.push({
+            clock_in: new Date(targetDate.setHours(20, 0, 0)).toISOString(),
+            clock_out: new Date(targetDate.setHours(23, 30, 0)).toISOString(),
+            break_start: new Date(targetDate.setHours(21, 30, 0)).toISOString(),
+            break_end: new Date(targetDate.setHours(21, 45, 0)).toISOString(),
+            expected_wage: Math.round(3.25 * 1500) // 実働3.25時間
+          });
+          break;
+          
+        case 1: // 1日前：日付跨ぎ
+          const nextDate = new Date(targetDate);
+          nextDate.setDate(targetDate.getDate() + 1);
+          
+          // 日付跨ぎの場合でも、終了時刻が今日を超えないようにする
+          if (nextDate < today) {
+            data.push({
+              clock_in: new Date(targetDate.setHours(21, 0, 0)).toISOString(),
+              clock_out: new Date(nextDate.setHours(2, 30, 0)).toISOString(),
+              break_start: new Date(targetDate.setHours(23, 0, 0)).toISOString(),
+              break_end: new Date(targetDate.setHours(23, 30, 0)).toISOString(),
+              expected_wage: Math.round(5 * 1500) // 実働5時間
+            });
+          }
+          break;
+      }
+    }
     
-    // 2日目：夜勤（明日）
-    const tomorrow = new Date(today)
-    tomorrow.setDate(today.getDate() + 1)
-    data.push({
-      clock_in: new Date(tomorrow.setHours(20, 0, 0)).toISOString(),
-      clock_out: new Date(tomorrow.setHours(23, 30, 0)).toISOString(),
-      break_start: new Date(tomorrow.setHours(21, 30, 0)).toISOString(),
-      break_end: new Date(tomorrow.setHours(21, 45, 0)).toISOString(),
-      expected_wage: Math.round(3.25 * 1500) // 実働3.25時間
-    })
-    
-    // 3日目：日付跨ぎ（明後日）
-    const dayAfterTomorrow = new Date(tomorrow)
-    dayAfterTomorrow.setDate(tomorrow.getDate() + 1)
-    const nextDay = new Date(dayAfterTomorrow)
-    nextDay.setDate(dayAfterTomorrow.getDate() + 1)
-    data.push({
-      clock_in: new Date(dayAfterTomorrow.setHours(21, 0, 0)).toISOString(),
-      clock_out: new Date(nextDay.setHours(2, 30, 0)).toISOString(),
-      break_start: new Date(dayAfterTomorrow.setHours(23, 0, 0)).toISOString(),
-      break_end: new Date(dayAfterTomorrow.setHours(23, 30, 0)).toISOString(),
-      expected_wage: Math.round(5 * 1500) // 実働5時間
-    })
-    
-    return data
+    return data;
   }
-}
+};
 
 /**
  * 月跨ぎパターン（月末21:00-翌月2:30）
@@ -397,16 +409,22 @@ const partTimePattern: TestPattern = {
     }[] = [];
     
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // 今日の0時を基準にする
     
     // 2ヶ月前の日付を取得
     const startDate = new Date(today);
     startDate.setMonth(today.getMonth() - 2);
     startDate.setHours(0, 0, 0, 0);
     
-    // 開始日から当日まで1日ずつ処理
+    // 開始日から昨日まで1日ずつ処理（今日は含まない）
     const processDate = (baseDate: Date) => {
       const currentDate = new Date(baseDate);
       const dayOfWeek = currentDate.getDay(); // 0=日曜日, 6=土曜日
+      
+      // 未来日付をスキップ
+      if (currentDate >= today) {
+        return;
+      }
       
       // 火(2)・水(3)・木(4)のみ勤務
       if (dayOfWeek >= 2 && dayOfWeek <= 4) {
@@ -457,20 +475,28 @@ const partTimePattern: TestPattern = {
             return;
         }
         
-        data.push({
-          clock_in: workSchedule.clockIn.toISOString(),
-          clock_out: workSchedule.clockOut.toISOString(),
-          break_start: workSchedule.breakStart.toISOString(),
-          break_end: workSchedule.breakEnd.toISOString(),
-          expected_wage: workSchedule.expectedWage
-        });
+        // 全ての時刻が今日以前であることを確認
+        if (
+          workSchedule.clockIn < today &&
+          workSchedule.clockOut < today &&
+          workSchedule.breakStart < today &&
+          workSchedule.breakEnd < today
+        ) {
+          data.push({
+            clock_in: workSchedule.clockIn.toISOString(),
+            clock_out: workSchedule.clockOut.toISOString(),
+            break_start: workSchedule.breakStart.toISOString(),
+            break_end: workSchedule.breakEnd.toISOString(),
+            expected_wage: workSchedule.expectedWage
+          });
+        }
       }
     };
     
-    // 開始日から当日まで1日ずつ処理
+    // 開始日から昨日まで1日ずつ処理
     for (
       const currentDate = new Date(startDate);
-      currentDate <= today;
+      currentDate < today; // 今日は含まない
       currentDate.setDate(currentDate.getDate() + 1)
     ) {
       processDate(currentDate);
@@ -499,23 +525,56 @@ export const testPatterns: TestPattern[] = [
 ]
 
 /**
+ * 未来日付をチェックする関数
+ * @param dates - チェックする日付の配列
+ * @returns 全ての日付が現在時刻以前の場合はtrue
+ */
+const validateDates = (...dates: Date[]): boolean => {
+  const now = new Date();
+  return dates.every(date => date <= now);
+};
+
+/**
  * テストデータを挿入し検証結果を表示
  * @param {string} staffId - スタッフID
  * @param {string} patternName - テストパターン名
  */
 export const insertAndValidateTestData = async (staffId: string, patternName: string) => {
   try {
-    const supabase = createClient()
-    const pattern = testPatterns.find(p => p.name === patternName)
+    const supabase = createClient();
+    const pattern = testPatterns.find(p => p.name === patternName);
     
     if (!pattern) {
-      throw new Error('指定されたパターンが見つかりません')
+      throw new Error('指定されたパターンが見つかりません');
     }
     
-    const testData = pattern.generate()
+    const testData = pattern.generate();
+    const now = new Date();
+    const results = [];
+    const skippedData = [];
     
-    const results = []
     for (const record of testData) {
+      // 未来日付のチェック
+      const clockIn = new Date(record.clock_in);
+      const clockOut = record.clock_out ? new Date(record.clock_out) : null;
+      const breakStart = record.break_start ? new Date(record.break_start) : null;
+      const breakEnd = record.break_end ? new Date(record.break_end) : null;
+      
+      // 全ての時刻が現在時刻以前であることを確認
+      if (clockIn > now || 
+          (clockOut && clockOut > now) || 
+          (breakStart && breakStart > now) || 
+          (breakEnd && breakEnd > now)) {
+        skippedData.push({
+          clockIn: clockIn.toLocaleString(),
+          clockOut: clockOut?.toLocaleString(),
+          breakStart: breakStart?.toLocaleString(),
+          breakEnd: breakEnd?.toLocaleString(),
+          reason: '未来の日時のため、スキップされました'
+        });
+        continue;
+      }
+      
       const { data, error } = await supabase
         .from('attendance')
         .insert({
@@ -525,27 +584,42 @@ export const insertAndValidateTestData = async (staffId: string, patternName: st
           break_start: record.break_start || null,
           break_end: record.break_end || null
         })
-        .select('*')
+        .select('*');
       
-      if (error) throw error
+      if (error) throw error;
       
       // 給与計算検証
-      const calculated = await calculateWage(supabase, data[0].id)
+      const calculated = await calculateWage(supabase, data[0].id);
       results.push({
         id: data[0].id,
         expected: record.expected_wage,
         actual: calculated,
         passed: calculated === record.expected_wage
-      })
+      });
     }
     
-    console.table(results, ['id', 'expected', 'actual', 'passed'])
-    alert(`${pattern.name}パターンのテスト完了\n成功: ${results.filter(r => r.passed).length}/${results.length}`)
+    // 結果の表示
+    if (skippedData.length > 0) {
+      console.log('スキップされたデータ:');
+      console.table(skippedData);
+    }
+    
+    if (results.length > 0) {
+      console.log('テスト結果:');
+      console.table(results, ['id', 'expected', 'actual', 'passed']);
+      alert(
+        `${pattern.name}パターンのテスト完了\n` +
+        `成功: ${results.filter(r => r.passed).length}/${results.length}\n` +
+        `スキップ: ${skippedData.length}件`
+      );
+    } else {
+      alert('全てのデータが未来日付のためスキップされました');
+    }
   } catch (error) {
-    console.error('テスト失敗:', error)
-    alert('テスト実行中にエラーが発生しました')
+    console.error('テスト失敗:', error);
+    alert('テスト実行中にエラーが発生しました');
   }
-}
+};
 
 /**
  * 給与計算関数（テスト用）

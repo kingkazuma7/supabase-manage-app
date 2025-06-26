@@ -262,7 +262,7 @@ function AttendanceContent() {
                   複数日パターン
                 </button>
                 <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分')}
+                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分（跨ぎ含む）')}
                   className={styles.buttonTest}
                 >
                   3ヶ月分データ
