@@ -106,14 +106,14 @@ export const calculateWageForTimeRange = (
     const slotEndTime = new Date(Math.min(nextChangeTime.getTime(), adjustedEndTime.getTime()));
     
     // デバッグログ
-    console.log(`計算中の時間帯: ${currentTime.toLocaleTimeString()} - ${slotEndTime.toLocaleTimeString()}`);
+    // console.log(`計算中の時間帯: ${currentTime.toLocaleTimeString()} - ${slotEndTime.toLocaleTimeString()}`);
     
     // 休憩時間中はスキップ
     if (breakStart && breakEnd && 
         currentTime >= breakStart && 
         currentTime < breakEnd) {
       currentTime = new Date(Math.min(breakEnd.getTime(), adjustedEndTime.getTime()));
-      console.log(`休憩時間をスキップ: ${breakStart.toLocaleTimeString()} - ${breakEnd.toLocaleTimeString()}`);
+      // console.log(`休憩時間をスキップ: ${breakStart.toLocaleTimeString()} - ${breakEnd.toLocaleTimeString()}`);
       continue;
     }
 
@@ -127,7 +127,7 @@ export const calculateWageForTimeRange = (
       const breakEndInSlot = new Date(Math.min(breakEnd.getTime(), slotEndTime.getTime()));
       const breakTimeInSlot = (breakEndInSlot.getTime() - breakStart.getTime()) / (1000 * 60 * 60);
       workTimeInSlot -= breakTimeInSlot;
-      console.log(`休憩時間を差し引き: ${breakTimeInSlot}時間`);
+      // console.log(`休憩時間を差し引き: ${breakTimeInSlot}時間`);
     }
 
     // 時給レートを決定して給与を計算
@@ -135,12 +135,12 @@ export const calculateWageForTimeRange = (
     const slotWage = workTimeInSlot * hourlyWage;
     totalWage += slotWage;
     
-    console.log(`時給レート: ¥${hourlyWage}, 労働時間: ${workTimeInSlot}時間, 給与: ¥${Math.round(slotWage)}`);
+    // console.log(`時給レート: ¥${hourlyWage}, 労働時間: ${workTimeInSlot}時間, 給与: ¥${Math.round(slotWage)}`);
 
     // 次の時間帯へ
     currentTime = new Date(slotEndTime);
   }
 
-  console.log(`合計給与: ¥${Math.round(totalWage)}`);
+  // console.log(`合計給与: ¥${Math.round(totalWage)}`);
   return Math.round(totalWage);
 }; 
