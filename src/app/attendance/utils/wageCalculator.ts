@@ -61,20 +61,17 @@ const adjustEndTimeForDateCrossing = (startTime: Date, endTime: Date): Date => {
   const startHour = startTime.getHours();
   const endHour = endTime.getHours();
   const endMinutes = endTime.getMinutes();
-  const isEndMidnight = endHour === 0 && endMinutes === 0;
-  const isStartBeforeMidnight = startHour >= 22;
 
   // 日付を調整
   const adjustedEndTime = new Date(endTime);
-  if (isEndMidnight && isStartBeforeMidnight) {
-    // 24:00（翌日の0:00）の場合
+  adjustedEndTime.setDate(startTime.getDate());
+
+  // 終了時刻が開始時刻より前の場合（日付跨ぎ）
+  if (
+    (endHour < startHour) ||
+    (endHour === startHour && endMinutes < startTime.getMinutes())
+  ) {
     adjustedEndTime.setDate(startTime.getDate() + 1);
-  } else if (endHour < startHour && !isEndMidnight) {
-    // その他の日付跨ぎの場合
-    adjustedEndTime.setDate(startTime.getDate() + 1);
-  } else {
-    // 同日の場合
-    adjustedEndTime.setDate(startTime.getDate());
   }
 
   return adjustedEndTime;
@@ -100,47 +97,54 @@ export const calculateWageForTimeRange = (
   // 日付跨ぎを考慮して終了時刻を調整
   const adjustedEndTime = adjustEndTimeForDateCrossing(startTime, endTime);
 
+  // 休憩時間も日付跨ぎを考慮して調整
+  let adjustedBreakStart: Date | undefined;
+  let adjustedBreakEnd: Date | undefined;
+  
+  if (breakStart && breakEnd) {
+    adjustedBreakStart = new Date(breakStart);
+    adjustedBreakEnd = adjustEndTimeForDateCrossing(breakStart, breakEnd);
+    
+    // 休憩開始時刻を勤務開始日に合わせる
+    adjustedBreakStart.setDate(startTime.getDate());
+    if (adjustedBreakStart.getHours() < startTime.getHours()) {
+      adjustedBreakStart.setDate(startTime.getDate() + 1);
+    }
+  }
+
   while (currentTime < adjustedEndTime) {
     // 次の時給レート変更時刻または勤務終了時刻のいずれか早い方
     const nextChangeTime = getNextRateChangeTime(currentTime);
     const slotEndTime = new Date(Math.min(nextChangeTime.getTime(), adjustedEndTime.getTime()));
     
-    // デバッグログ
-    // console.log(`計算中の時間帯: ${currentTime.toLocaleTimeString()} - ${slotEndTime.toLocaleTimeString()}`);
-    
-    // 休憩時間中はスキップ
-    if (breakStart && breakEnd && 
-        currentTime >= breakStart && 
-        currentTime < breakEnd) {
-      currentTime = new Date(Math.min(breakEnd.getTime(), adjustedEndTime.getTime()));
-      // console.log(`休憩時間をスキップ: ${breakStart.toLocaleTimeString()} - ${breakEnd.toLocaleTimeString()}`);
-      continue;
-    }
-
     // 時間帯の労働時間を計算（時間単位）
     let workTimeInSlot = (slotEndTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
 
-    // 休憩時間が時間帯の途中で始まる場合の調整
-    if (breakStart && breakEnd && 
-        breakStart > currentTime && 
-        breakStart < slotEndTime) {
-      const breakEndInSlot = new Date(Math.min(breakEnd.getTime(), slotEndTime.getTime()));
-      const breakTimeInSlot = (breakEndInSlot.getTime() - breakStart.getTime()) / (1000 * 60 * 60);
-      workTimeInSlot -= breakTimeInSlot;
-      // console.log(`休憩時間を差し引き: ${breakTimeInSlot}時間`);
+    // 休憩時間の処理
+    if (adjustedBreakStart && adjustedBreakEnd) {
+      // 休憩時間と現在の時間帯が重なっているかチェック
+      const breakOverlap = !(
+        adjustedBreakEnd.getTime() <= currentTime.getTime() ||
+        adjustedBreakStart.getTime() >= slotEndTime.getTime()
+      );
+
+      if (breakOverlap) {
+        // 重なっている時間を計算
+        const overlapStart = new Date(Math.max(currentTime.getTime(), adjustedBreakStart.getTime()));
+        const overlapEnd = new Date(Math.min(slotEndTime.getTime(), adjustedBreakEnd.getTime()));
+        const breakTimeInSlot = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60);
+        workTimeInSlot -= breakTimeInSlot;
+      }
     }
 
     // 時給レートを決定して給与を計算
     const hourlyWage = determineHourlyWage(currentTime);
     const slotWage = workTimeInSlot * hourlyWage;
     totalWage += slotWage;
-    
-    // console.log(`時給レート: ¥${hourlyWage}, 労働時間: ${workTimeInSlot}時間, 給与: ¥${Math.round(slotWage)}`);
 
     // 次の時間帯へ
     currentTime = new Date(slotEndTime);
   }
 
-  // console.log(`合計給与: ¥${Math.round(totalWage)}`);
   return Math.round(totalWage);
 }; 

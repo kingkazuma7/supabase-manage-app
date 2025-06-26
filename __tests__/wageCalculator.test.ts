@@ -139,31 +139,43 @@ describe('calculateWageForTimeRange', () => {
     });
   });
 
-  // describe('複合的なケース', () => {
-  //   test('全時間帯を含む勤務（21:00-2:00）', () => {
-  //     const start = createDate(21);
-  //     const end = createDate(2);
-  //     const expectedWage = Math.round(
-  //       (1 * 1500) +   // 21:00-22:00 (1時間) × ¥1,500
-  //       (2 * 1875) +   // 22:00-24:00 (2時間) × ¥1,875
-  //       (2 * 2000)     // 00:00-02:00 (2時間) × ¥2,000
-  //     );
-  //     const wage = calculateWageForTimeRange(start, end);
-  //     expect(wage).toBe(expectedWage);
-  //   });
+  describe('複合的なケース', () => {
+    test('全時間帯を含む勤務（21:00-2:00）', () => {
+      const start = createDate(21);
+      const end = createDate(2);
+      const expectedWage = Math.round(
+        (1 * 1500) +   // 21:00-22:00 (1時間) × ¥1,500
+        (2 * 1875) +   // 22:00-24:00 (2時間) × ¥1,875
+        (2 * 2000)     // 00:00-02:00 (2時間) × ¥2,000
+      );
+      const wage = calculateWageForTimeRange(start, end);
 
-  //   test('全時間帯を含む勤務（休憩あり）', () => {
-  //     const start = createDate(21);
-  //     const end = createDate(2);
-  //     const breakStart = createDate(23);
-  //     const breakEnd = createDate(0);
-  //     const expectedWage = Math.round(
-  //       (1 * 1500) +   // 21:00-22:00 (1時間) × ¥1,500
-  //       (1 * 1875) +   // 22:00-23:00 (1時間) × ¥1,875
-  //       (2 * 2000)     // 00:00-02:00 (2時間) × ¥2,000
-  //     );
-  //     const wage = calculateWageForTimeRange(start, end, breakStart, breakEnd);
-  //     expect(wage).toBe(expectedWage);
-  //   });
-  // });
+      // デバッグ出力
+      // console.log(`  全時間帯を含む勤務 (21:00-2:00):`);
+      // console.log(`    期待される給与: ¥${expectedWage}`);
+      // console.log(`    実際の計算結果: ¥${wage}`);
+
+      expect(wage).toBe(expectedWage);
+    });
+
+    test('全時間帯を含む勤務（休憩あり）', () => {
+      const start = createDate(21);
+      const end = createDate(2);
+      const breakStart = createDate(23);
+      const breakEnd = createDate(0);
+      const expectedWage = Math.round(
+        (1 * 1500) +   // 21:00-22:00 (1時間) × ¥1,500
+        (1 * 1875) +   // 22:00-23:00 (1時間) × ¥1,875
+        (2 * 2000)     // 00:00-02:00 (2時間) × ¥2,000
+      );
+      const wage = calculateWageForTimeRange(start, end, breakStart, breakEnd);
+
+      // デバッグ出力
+      console.log(`  全時間帯を含む勤務（休憩あり 23:00-0:00）:`);
+      console.log(`    期待される給与: ¥${expectedWage}`);
+      console.log(`    実際の計算結果: ¥${wage}`);
+
+      expect(wage).toBe(expectedWage);
+    });
+  });
 }); 
