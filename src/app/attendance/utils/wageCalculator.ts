@@ -58,20 +58,11 @@ const getNextRateChangeTime = (currentTime: Date): Date => {
  * @returns 調整された終了時刻
  */
 const adjustEndTimeForDateCrossing = (startTime: Date, endTime: Date): Date => {
-  const startHour = startTime.getHours();
-  const endHour = endTime.getHours();
-  const endMinutes = endTime.getMinutes();
-
-  // 日付を調整
+  // 終了時刻が開始時刻以前（＝日付が跨っている）場合のみ、1日加算
   const adjustedEndTime = new Date(endTime);
-  adjustedEndTime.setDate(startTime.getDate());
 
-  // 終了時刻が開始時刻より前の場合（日付跨ぎ）
-  if (
-    (endHour < startHour) ||
-    (endHour === startHour && endMinutes < startTime.getMinutes())
-  ) {
-    adjustedEndTime.setDate(startTime.getDate() + 1);
+  if (adjustedEndTime.getTime() <= startTime.getTime()) {
+    adjustedEndTime.setDate(adjustedEndTime.getDate() + 1);
   }
 
   return adjustedEndTime;
