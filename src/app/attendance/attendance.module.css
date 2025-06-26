@@ -177,7 +177,12 @@
 }
 
 .recordBreak {
+  font-family: var(--font-geist-mono);
   color: var(--text-secondary);
+  text-align: center;
+  padding: 0.5rem 1rem !important;
+  background-color: var(--background-hover);
+  border-radius: 0.25rem;
 }
 
 .recordWorkTime {

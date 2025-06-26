@@ -162,7 +162,7 @@ function AttendanceContent() {
                   </td>
                   <td className={styles.recordBreak}>
                     {record.breakStart && record.breakEnd ? (
-                      `${formatTimeString(new Date(record.breakStart))} - ${formatTimeString(new Date(record.breakEnd))}`
+                      calculateWorkTime(record.breakStart, record.breakEnd)
                     ) : (
                       '-'
                     )}
