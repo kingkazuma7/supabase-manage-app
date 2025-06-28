@@ -155,6 +155,11 @@ export const calculateActualWorkTime = (
   const start = new Date(clockIn);
   const end = new Date(clockOut);
   
+  // 開始時間と終了時間が同じか、1分未満の差の場合は00:00を返す
+  if (end.getTime() - start.getTime() < TIME.MILLISECONDS_IN_MINUTE) {
+    return '00:00';
+  }
+  
   // 総勤務時間を分単位で計算（切り上げ）
   const totalWorkMinutes = Math.ceil((end.getTime() - start.getTime()) / TIME.MILLISECONDS_IN_MINUTE);
   
