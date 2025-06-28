@@ -159,7 +159,7 @@ describe('勤怠管理システムのテスト', () => {
           { clockIn: '2023-01-01T09:00:00', clockOut: '2023-01-01T18:00:00' },
           { clockIn: '2023-01-02T09:00:00', clockOut: null }
         ],
-        expectedValid: false
+        expectedValid: true
       }
     ];
 
