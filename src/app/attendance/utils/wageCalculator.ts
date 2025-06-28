@@ -1,4 +1,5 @@
 import { WAGE_RATES } from '../constants';
+import { TIME } from '../constants';
 
 /**
  * 時給レートを決定する
@@ -109,7 +110,11 @@ export const calculateWageForTimeRange = (
     const slotEndTime = new Date(Math.min(nextChangeTime.getTime(), adjustedEndTime.getTime()));
     
     // 時間帯の労働時間を計算（時間単位）
-    let workTimeInSlot = (slotEndTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+    let workTimeInSlot = (slotEndTime.getTime() - currentTime.getTime()) / (TIME.MILLISECONDS_IN_MINUTE * TIME.MINUTES_IN_HOUR);
+
+    if (workTimeInSlot < (1 / TIME.MINUTES_IN_HOUR)) {
+      workTimeInSlot = Math.floor((slotEndTime.getTime() - currentTime.getTime()) / TIME.MILLISECONDS_IN_MINUTE) / TIME.MINUTES_IN_HOUR;
+    }
 
     // 休憩時間の処理
     if (adjustedBreakStart && adjustedBreakEnd) {
@@ -123,7 +128,7 @@ export const calculateWageForTimeRange = (
         // 重なっている時間を計算
         const overlapStart = new Date(Math.max(currentTime.getTime(), adjustedBreakStart.getTime()));
         const overlapEnd = new Date(Math.min(slotEndTime.getTime(), adjustedBreakEnd.getTime()));
-        const breakTimeInSlot = (overlapEnd.getTime() - overlapStart.getTime()) / (1000 * 60 * 60);
+        const breakTimeInSlot = (overlapEnd.getTime() - overlapStart.getTime()) / (TIME.MILLISECONDS_IN_MINUTE * TIME.MINUTES_IN_HOUR);
         workTimeInSlot -= breakTimeInSlot;
       }
     }
