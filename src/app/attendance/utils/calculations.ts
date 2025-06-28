@@ -44,7 +44,16 @@ export const formatMinutesToTime = (totalMinutes: number): string => {
 const calculateBreakMinutes = (breakStart: string, breakEnd: string): number => {
   const start = new Date(breakStart);
   const end = new Date(breakEnd);
-  return Math.ceil((end.getTime() - start.getTime()) / TIME.MILLISECONDS_IN_MINUTE);
+  
+  const diffMilliseconds = end.getTime() - start.getTime();
+
+  // if (diffMilliseconds <= 0) return 0;
+  
+  if (diffMilliseconds <= 0 || diffMilliseconds < TIME.MILLISECONDS_IN_MINUTE) {
+    return 0;
+  }
+
+  return Math.ceil(diffMilliseconds / TIME.MILLISECONDS_IN_MINUTE);
 };
 
 /**
