@@ -117,9 +117,43 @@ export const validateRecords = (
 ): boolean => {
   if (records.length === 0) return true;
   
-  // 未退勤の記録が複数存在しないことを確認
+  // 1. 未退勤の記録が複数存在しないことを確認 (既存ロジック)
   const unclockedOutCount = records.filter(record => !record.clock_out).length;
-  return unclockedOutCount <= 1;
+  if (unclockedOutCount > 1) {
+    return false; // 複数未退勤は不正
+  }
+
+  // 2. 記録を時間順にソートする
+  // Dateオブジェクトに変換して、出勤時刻で昇順ソートします
+  const sortedRecords = [...records].sort((a, b) => {
+    return new Date(a.clock_in).getTime() - new Date(b.clock_in).getTime();
+  });
+
+  // 3. 各記録の重複や連続性のチェック
+  // ソートされた記録を前から順に見て、前の記録との関係をチェックします
+  for (let i = 1; i < sortedRecords.length; i++) {
+    const prevRecord = sortedRecords[i - 1]; // 前の記録
+    const currentRecord = sortedRecords[i];  // 現在の記録
+
+    // 前の記録が退勤済みでない場合（まだ勤務中の場合）、次の出勤打刻は不正
+    // 例: 9時出勤 -> 退勤なし -> 10時出勤 のような場合
+    if (prevRecord.clock_out === null) {
+      return false;
+    }
+
+    // 前の記録の退勤時刻と現在の記録の出勤時刻を比較
+    const prevClockOutTime = new Date(prevRecord.clock_out).getTime();
+    const currentClockInTime = new Date(currentRecord.clock_in).getTime();
+
+    // 現在の出勤時刻が、前の記録の退勤時刻と「同じかそれより前」の場合、不正とみなす
+    // テストケースの意図（18:00退勤 -> 18:00出勤が不正）に合致させるため <= を使用します
+    if (currentClockInTime <= prevClockOutTime) {
+      return false;
+    }
+  }
+
+  // 全てのチェックを通過したら、整合性が取れていると判断
+  return true;
 };
 
 /**
