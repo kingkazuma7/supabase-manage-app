@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { createClient } from '../../utils/supabase/client';
 import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from '../types';
 import { calculateWorkTime, calculateWorkTimeForPeriod, getMinutesFromHHMM, validateRecords, calculateActualWorkTime, formatMinutesToTime } from '../utils/calculations';
@@ -44,7 +44,7 @@ export const useAttendance = (staffId: string | null) => {
   const [error, setError] = useState<string | null>(null);
   const [isTodayCompleted, setIsTodayCompleted] = useState(false);
   const [monthlyTotal, setMonthlyTotal] = useState<MonthlyTotal | null>(null);
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
 
@@ -263,7 +263,7 @@ export const useAttendance = (staffId: string | null) => {
       console.error('データ取得エラー:', err);
       setError(err instanceof Error ? err.message : ATTENDANCE_ERRORS.FETCH_ERROR);
     }
-  }, [staffId, viewYear, viewMonth]);
+  }, [staffId, viewYear, viewMonth, now]);
 
   useEffect(() => {
     fetchData();

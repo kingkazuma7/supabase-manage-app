@@ -17,8 +17,6 @@ import { calculateWageForTimeRange } from './utils/wageCalculator'
 import { formatDateWithWeekday, formatTimeString } from './utils/dateUtils'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/app/hooks/useAuth'
-import { supabase } from '@/app/utils/supabaseClient'
 
 function AttendanceContent() {
   const searchParams = useSearchParams()
@@ -259,33 +257,27 @@ function AttendanceContent() {
                   onClick={() => insertAndValidateTestData(staffId || '', '複数日')}
                   className={styles.buttonTest}
                 >
-                  複数日パターン
+                  複数日データ
                 </button>
                 <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分（跨ぎ含む）')}
+                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分')}
                   className={styles.buttonTest}
                 >
                   3ヶ月分データ
                 </button>
                 <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '半年分データ')}
+                  onClick={() => insertAndValidateTestData(staffId || '', '過去6ヶ月（均等分散）')}
                   className={styles.buttonTest}
                 >
-                  半年分データ
-                </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '2025年上半期')}
-                  className={styles.buttonTest}
-                >
-                  2025年上半期データ
-                </button>
-                <button 
-                  onClick={() => deleteTestData(staffId || '')}
-                  className={styles.buttonDanger}
-                >
-                  テストデータ削除
+                  過去6ヶ月（均等分散）データ
                 </button>
               </div>
+              <button 
+                onClick={() => deleteTestData(staffId || '')}
+                className={styles.buttonTest}
+              >
+                全テストデータを削除
+              </button>
             </div>
           </details>
         </div>

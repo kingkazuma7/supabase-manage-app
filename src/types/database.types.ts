@@ -9,6 +9,51 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      attendance_records: {
+        Row: {
+          id: string
+          staff_id: string
+          date: string
+          start_time: string
+          end_time: string | null
+          is_cross_day: boolean
+          original_clock_in: string
+          original_clock_out: string | null
+          break_start: string | null
+          break_end: string | null
+          actual_work_time: string | null
+          wage: number | null
+        }
+        Insert: {
+          id?: string
+          staff_id: string
+          date: string
+          start_time: string
+          end_time?: string | null
+          is_cross_day?: boolean
+          original_clock_in: string
+          original_clock_out?: string | null
+          break_start?: string | null
+          break_end?: string | null
+          actual_work_time?: string | null
+          wage?: number | null
+        }
+        Update: {
+          id?: string
+          staff_id?: string
+          date?: string
+          start_time?: string
+          end_time?: string | null
+          is_cross_day?: boolean
+          original_clock_in?: string
+          original_clock_out?: string | null
+          break_start?: string | null
+          break_end?: string | null
+          actual_work_time?: string | null
+          wage?: number | null
+        }
+        Relationships: []
+      }
       todos: {
         Row: {
           created_at: string
