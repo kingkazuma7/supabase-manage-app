@@ -268,6 +268,18 @@ function AttendanceContent() {
                   3ヶ月分データ
                 </button>
                 <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '半年分データ')}
+                  className={styles.buttonTest}
+                >
+                  半年分データ
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '2025年上半期')}
+                  className={styles.buttonTest}
+                >
+                  2025年上半期データ
+                </button>
+                <button 
                   onClick={() => deleteTestData(staffId || '')}
                   className={styles.buttonDanger}
                 >

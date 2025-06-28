@@ -284,17 +284,17 @@ const fullMonthPattern: TestPattern = {
 }
 
 /**
- * 3ヶ月分パターン（前月・当月・翌月、月跨ぎ含む、各月最大160h）
+ * 3ヶ月分パターン（前月・当月・翌月、月跨ぎ含む、月10日程度）
  */
 const threeMonthPattern: TestPattern = {
   name: '3ヶ月分（跨ぎ含む）',
-  description: '前月・当月・翌月の3ヶ月分＋月跨ぎ勤務を含み、各月最大160h（全て休憩付き）',
+  description: '前月・当月・翌月の3ヶ月分＋月跨ぎ勤務を含み、月10日程度（全て休憩付き）',
   generate: () => {
     const today = new Date();
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth(); // 0-indexed
     const data = [];
-    const maxMinutes = 160 * 60; // 160h
+    const targetDaysPerMonth = 10; // 月あたりの目標勤務日数
 
     // 前月、当月、翌月の情報
     const months = [currentMonth - 1, currentMonth, currentMonth + 1];
@@ -314,6 +314,7 @@ const threeMonthPattern: TestPattern = {
       break_end: new Date(prevMonthLastDay.getFullYear(), prevMonthLastDay.getMonth(), prevMonthLastDay.getDate(), 23, 30, 0).toISOString(),
       expected_wage: Math.round(5 * 1500) // 実働5時間
     });
+
     // 月跨ぎ：当月末21:00〜翌月1日2:30
     const thisMonthLastDay = new Date(years[1], months[1] + 1, 0);
     const nextMonthFirstDay = new Date(years[2], months[2], 1);
@@ -325,183 +326,293 @@ const threeMonthPattern: TestPattern = {
       expected_wage: Math.round(5 * 1500) // 実働5時間
     });
 
-    // 各月ごとに最大160hまでデータを追加
+    // 各月ごとにデータを追加
     months.forEach((month, idx) => {
       const year = years[idx];
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      let totalMinutes = 0;
+      let workDaysInMonth = 0;
+
       for (let day = 1; day <= daysInMonth; day++) {
-        if (totalMinutes >= maxMinutes) break;
+        if (workDaysInMonth >= targetDaysPerMonth) break;
+
         const date = new Date(year, month, day);
+        // 未来日付をスキップ
+        if (date >= today) continue;
+
         const dayOfWeek = date.getDay();
-        let clockIn, clockOut, breakStart, breakEnd, expectedWage, workMinutes;
-        if (dayOfWeek === 0) {
-          // 日曜：夜勤（3.5h）- 休憩15分
-          clockIn = new Date(year, month, day, 20, 0, 0);
-          clockOut = new Date(year, month, day, 23, 30, 0);
-          breakStart = new Date(year, month, day, 21, 30, 0);
-          breakEnd = new Date(year, month, day, 21, 45, 0);
-          workMinutes = 3.25 * 60; // 実働3.25時間
-          expectedWage = Math.round(3.25 * 1500);
-        } else if (dayOfWeek === 6) {
-          // 土曜：日付跨ぎ（5.5h）- 休憩30分
-          const nextDay = new Date(year, month, day + 1);
-          clockIn = new Date(year, month, day, 21, 0, 0);
-          clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
-          breakStart = new Date(year, month, day, 23, 0, 0);
-          breakEnd = new Date(year, month, day, 23, 30, 0);
-          workMinutes = 5 * 60; // 実働5時間
-          expectedWage = Math.round(5 * 1500);
-        } else {
-          // 平日：通常勤務（9h）- 休憩1時間
-          clockIn = new Date(year, month, day, 9, 0, 0);
-          clockOut = new Date(year, month, day, 18, 0, 0);
-          breakStart = new Date(year, month, day, 12, 0, 0);
-          breakEnd = new Date(year, month, day, 13, 0, 0);
-          workMinutes = 8 * 60; // 実働8時間
-          expectedWage = 8 * 1500;
+        let clockIn, clockOut, breakStart, breakEnd, expectedWage;
+
+        // ランダムに勤務日を選択（約50%の確率で勤務）
+        if (Math.random() < 0.5) continue;
+
+        switch (dayOfWeek) {
+          case 0: // 日曜：夜勤（3.5h）- 休憩15分
+            clockIn = new Date(year, month, day, 20, 0, 0);
+            clockOut = new Date(year, month, day, 23, 30, 0);
+            breakStart = new Date(year, month, day, 21, 30, 0);
+            breakEnd = new Date(year, month, day, 21, 45, 0);
+            expectedWage = Math.round(3.25 * 1500);
+            break;
+
+          case 6: // 土曜：日付跨ぎ（5.5h）- 休憩30分
+            const nextDay = new Date(year, month, day + 1);
+            clockIn = new Date(year, month, day, 21, 0, 0);
+            clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
+            breakStart = new Date(year, month, day, 23, 0, 0);
+            breakEnd = new Date(year, month, day, 23, 30, 0);
+            expectedWage = Math.round(5 * 1500);
+            break;
+
+          default: // 平日：通常勤務（9h）- 休憩1時間
+            clockIn = new Date(year, month, day, 9, 0, 0);
+            clockOut = new Date(year, month, day, 18, 0, 0);
+            breakStart = new Date(year, month, day, 12, 0, 0);
+            breakEnd = new Date(year, month, day, 13, 0, 0);
+            expectedWage = 8 * 1500;
         }
-        // 追加しても160hを超えない場合のみpush
-        if (totalMinutes + workMinutes <= maxMinutes) {
-          data.push({
-            clock_in: clockIn.toISOString(),
-            clock_out: clockOut.toISOString(),
-            break_start: breakStart.toISOString(),
-            break_end: breakEnd.toISOString(),
-            expected_wage: expectedWage
-          });
-          totalMinutes += workMinutes;
-        } else if (totalMinutes < maxMinutes) {
-          // 端数調整：残り分だけ追加
-          const remain = maxMinutes - totalMinutes;
-          // 端数分の勤務時間をclock_outに反映
-          const partialClockOut = new Date(clockIn.getTime() + remain * 60 * 1000);
-          // 給与は1分単位で1500円/60分で計算
-          const partialWage = Math.round(remain * (1500 / 60));
-          data.push({
-            clock_in: clockIn.toISOString(),
-            clock_out: partialClockOut.toISOString(),
-            break_start: breakStart.toISOString(),
-            break_end: breakEnd.toISOString(),
-            expected_wage: partialWage
-          });
-          totalMinutes = maxMinutes;
-        }
+
+        data.push({
+          clock_in: clockIn.toISOString(),
+          clock_out: clockOut.toISOString(),
+          break_start: breakStart.toISOString(),
+          break_end: breakEnd.toISOString(),
+          expected_wage: expectedWage
+        });
+        workDaysInMonth++;
       }
     });
+
     return data;
   }
 };
 
 /**
- * 週休3日のアルバイトパターン（2ヶ月分）
+ * 半年分のテストデータパターン（月10日程度の勤務）
  */
-const partTimePattern: TestPattern = {
-  name: '週休3日アルバイト',
-  description: '2ヶ月分の週休3日アルバイトパターン（火水木のみ勤務、当日より過去分）',
+const halfYearPattern: TestPattern = {
+  name: '半年分データ',
+  description: '過去半年分のデータ（月10日程度、休憩付き、月跨ぎ含む）',
   generate: () => {
-    const data: {
+    const today = new Date();
+    const data = [];
+    const targetDaysPerMonth = 10; // 月あたりの目標勤務日数
+
+    // 過去6ヶ月分のデータを生成
+    for (let monthOffset = 6; monthOffset > 0; monthOffset--) {
+      const targetDate = new Date(today);
+      targetDate.setMonth(today.getMonth() - monthOffset);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let workDaysInMonth = 0; // その月の勤務日数カウンター
+
+      // 月末の日付跨ぎデータを追加（前月末から当月1日）
+      if (monthOffset > 1) { // 今月は除外
+        const nextMonth = new Date(year, month + 1, 1);
+        data.push({
+          clock_in: new Date(year, month, daysInMonth, 21, 0, 0).toISOString(),
+          clock_out: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonth.getDate(), 2, 30, 0).toISOString(),
+          break_start: new Date(year, month, daysInMonth, 23, 0, 0).toISOString(),
+          break_end: new Date(year, month, daysInMonth, 23, 30, 0).toISOString(),
+          expected_wage: Math.round(5 * 1500) // 実働5時間
+        });
+        workDaysInMonth++;
+      }
+
+      // 各日のデータを生成
+      for (let day = 1; day <= daysInMonth; day++) {
+        if (workDaysInMonth >= targetDaysPerMonth) break;
+
+        const date = new Date(year, month, day);
+        // 今日以降のデータは生成しない
+        if (date >= today) break;
+
+        const dayOfWeek = date.getDay();
+        let clockIn, clockOut, breakStart, breakEnd, expectedWage;
+
+        // ランダムに勤務日を選択（約50%の確率で勤務）
+        if (Math.random() < 0.5) continue;
+
+        switch (dayOfWeek) {
+          case 0: // 日曜：夜勤（3.5h）- 休憩15分
+            clockIn = new Date(year, month, day, 20, 0, 0);
+            clockOut = new Date(year, month, day, 23, 30, 0);
+            breakStart = new Date(year, month, day, 21, 30, 0);
+            breakEnd = new Date(year, month, day, 21, 45, 0);
+            expectedWage = Math.round(3.25 * 1500);
+            break;
+
+          case 6: // 土曜：日付跨ぎ（5.5h）- 休憩30分
+            const nextDay = new Date(year, month, day + 1);
+            clockIn = new Date(year, month, day, 21, 0, 0);
+            clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
+            breakStart = new Date(year, month, day, 23, 0, 0);
+            breakEnd = new Date(year, month, day, 23, 30, 0);
+            expectedWage = Math.round(5 * 1500);
+            break;
+
+          default: // 平日：通常勤務（9h）- 休憩1時間
+            clockIn = new Date(year, month, day, 9, 0, 0);
+            clockOut = new Date(year, month, day, 18, 0, 0);
+            breakStart = new Date(year, month, day, 12, 0, 0);
+            breakEnd = new Date(year, month, day, 13, 0, 0);
+            expectedWage = 8 * 1500;
+        }
+
+        data.push({
+          clock_in: clockIn.toISOString(),
+          clock_out: clockOut.toISOString(),
+          break_start: breakStart.toISOString(),
+          break_end: breakEnd.toISOString(),
+          expected_wage: expectedWage
+        });
+        workDaysInMonth++;
+      }
+    }
+
+    return data;
+  }
+};
+
+/**
+ * 2025年上半期のテストデータパターン（月10日程度の均等分散勤務）
+ */
+const firstHalf2025Pattern: TestPattern = {
+  name: '2025年上半期',
+  description: '2025年1月から6月まで（月10日程度、休憩付き、月跨ぎ含む、均等分散）',
+  generate: () => {
+    const data: Array<{
       clock_in: string;
       clock_out: string;
       break_start: string;
       break_end: string;
       expected_wage: number;
-    }[] = [];
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // 今日の0時を基準にする
-    
-    // 2ヶ月前の日付を取得
-    const startDate = new Date(today);
-    startDate.setMonth(today.getMonth() - 2);
-    startDate.setHours(0, 0, 0, 0);
-    
-    // 開始日から昨日まで1日ずつ処理（今日は含まない）
-    const processDate = (baseDate: Date) => {
-      const currentDate = new Date(baseDate);
-      const dayOfWeek = currentDate.getDay(); // 0=日曜日, 6=土曜日
-      
-      // 未来日付をスキップ
-      if (currentDate >= today) {
-        return;
+    }> = [];
+    const targetDaysPerMonth = 10; // 月あたりの目標勤務日数
+
+    // 2025年1月から6月までの各月
+    for (let month = 0; month < 6; month++) {
+      const year = 2025;
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let workDaysInMonth = 0;
+
+      // 月末の日付跨ぎデータを追加（月初を除く）
+      if (month < 5) { // 6月は除外
+        const nextMonth = new Date(year, month + 1, 1);
+        data.push({
+          clock_in: new Date(year, month, daysInMonth, 21, 0, 0).toISOString(),
+          clock_out: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonth.getDate(), 2, 30, 0).toISOString(),
+          break_start: new Date(year, month, daysInMonth, 23, 0, 0).toISOString(),
+          break_end: new Date(year, month, daysInMonth, 23, 30, 0).toISOString(),
+          expected_wage: Math.round(5 * 1500) // 実働5時間
+        });
+        workDaysInMonth++;
       }
-      
-      // 火(2)・水(3)・木(4)のみ勤務
-      if (dayOfWeek >= 2 && dayOfWeek <= 4) {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const date = currentDate.getDate();
-        
-        let workSchedule: {
-          clockIn: Date;
-          clockOut: Date;
-          breakStart: Date;
-          breakEnd: Date;
-          expectedWage: number;
-        };
-        
-        switch (dayOfWeek) {
-          case 2: // 火曜：通常勤務 10:00-19:00
-            workSchedule = {
-              clockIn: new Date(year, month, date, 10, 0),
-              clockOut: new Date(year, month, date, 19, 0),
-              breakStart: new Date(year, month, date, 14, 0),
-              breakEnd: new Date(year, month, date, 15, 0),
-              expectedWage: 8 * 1500 // 実働8時間
-            };
-            break;
-            
-          case 3: // 水曜：夜勤 17:00-22:00
-            workSchedule = {
-              clockIn: new Date(year, month, date, 17, 0),
-              clockOut: new Date(year, month, date, 22, 0),
-              breakStart: new Date(year, month, date, 19, 30),
-              breakEnd: new Date(year, month, date, 20, 0),
-              expectedWage: Math.round(4.5 * 1500) // 実働4.5時間
-            };
-            break;
-            
-          case 4: // 木曜：早朝勤務 7:00-16:00
-            workSchedule = {
-              clockIn: new Date(year, month, date, 7, 0),
-              clockOut: new Date(year, month, date, 16, 0),
-              breakStart: new Date(year, month, date, 11, 0),
-              breakEnd: new Date(year, month, date, 12, 0),
-              expectedWage: 8 * 1500 // 実働8時間
-            };
-            break;
-            
-          default:
-            return;
-        }
-        
-        // 全ての時刻が今日以前であることを確認
-        if (
-          workSchedule.clockIn < today &&
-          workSchedule.clockOut < today &&
-          workSchedule.breakStart < today &&
-          workSchedule.breakEnd < today
-        ) {
-          data.push({
-            clock_in: workSchedule.clockIn.toISOString(),
-            clock_out: workSchedule.clockOut.toISOString(),
-            break_start: workSchedule.breakStart.toISOString(),
-            break_end: workSchedule.breakEnd.toISOString(),
-            expected_wage: workSchedule.expectedWage
-          });
+
+      // 各週の勤務日を確実に設定
+      const weeksInMonth = Math.floor(daysInMonth / 7);
+      const targetDaysPerWeek = Math.ceil((targetDaysPerMonth - workDaysInMonth) / weeksInMonth);
+
+      // 月の1日から順に処理
+      for (let day = 1; day <= daysInMonth; day++) {
+        if (workDaysInMonth >= targetDaysPerMonth) break;
+
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.getDay();
+        const weekNumber = Math.floor((day - 1) / 7);
+
+        // 各週に最低2日は確実に入れる
+        const daysInThisWeek = data.filter(d => {
+          const clockIn = new Date(d.clock_in);
+          return clockIn.getFullYear() === year &&
+                 clockIn.getMonth() === month &&
+                 Math.floor((clockIn.getDate() - 1) / 7) === weekNumber;
+        }).length;
+
+        // その週の勤務日数が目標に達していない場合のみ追加
+        if (daysInThisWeek < targetDaysPerWeek) {
+          let shiftData: {
+            clockIn: Date;
+            clockOut: Date;
+            breakStart: Date;
+            breakEnd: Date;
+            expectedWage: number;
+          } | null = null;
+
+          // 曜日に応じたシフトパターン
+          switch (dayOfWeek) {
+            case 0: // 日曜：夜勤（3.5h）- 休憩15分
+              shiftData = {
+                clockIn: new Date(year, month, day, 20, 0, 0),
+                clockOut: new Date(year, month, day, 23, 30, 0),
+                breakStart: new Date(year, month, day, 21, 30, 0),
+                breakEnd: new Date(year, month, day, 21, 45, 0),
+                expectedWage: Math.round(3.25 * 1500)
+              };
+              break;
+
+            case 6: // 土曜：日付跨ぎ（5.5h）- 休憩30分
+              const nextDay = new Date(year, month, day + 1);
+              shiftData = {
+                clockIn: new Date(year, month, day, 21, 0, 0),
+                clockOut: new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0),
+                breakStart: new Date(year, month, day, 23, 0, 0),
+                breakEnd: new Date(year, month, day, 23, 30, 0),
+                expectedWage: Math.round(5 * 1500)
+              };
+              break;
+
+            default: // 平日：通常勤務（9h）- 休憩1時間
+              // 平日は確実に入れる（特に火・水・木を優先）
+              if (dayOfWeek >= 2 && dayOfWeek <= 4) {
+                shiftData = {
+                  clockIn: new Date(year, month, day, 9, 0, 0),
+                  clockOut: new Date(year, month, day, 18, 0, 0),
+                  breakStart: new Date(year, month, day, 12, 0, 0),
+                  breakEnd: new Date(year, month, day, 13, 0, 0),
+                  expectedWage: 8 * 1500
+                };
+              }
+          }
+
+          // シフトが設定された場合のみデータを追加
+          if (shiftData) {
+            data.push({
+              clock_in: shiftData.clockIn.toISOString(),
+              clock_out: shiftData.clockOut.toISOString(),
+              break_start: shiftData.breakStart.toISOString(),
+              break_end: shiftData.breakEnd.toISOString(),
+              expected_wage: shiftData.expectedWage
+            });
+            workDaysInMonth++;
+          }
         }
       }
-    };
-    
-    // 開始日から昨日まで1日ずつ処理
-    for (
-      const currentDate = new Date(startDate);
-      currentDate < today; // 今日は含まない
-      currentDate.setDate(currentDate.getDate() + 1)
-    ) {
-      processDate(currentDate);
+
+      // その月の勤務日数が目標に達していない場合、追加の平日シフトで補完
+      while (workDaysInMonth < targetDaysPerMonth) {
+        // 月の中旬（15日前後）の平日を探して追加
+        for (let day = 13; day <= 17; day++) {
+          if (workDaysInMonth >= targetDaysPerMonth) break;
+          
+          const date = new Date(year, month, day);
+          const dayOfWeek = date.getDay();
+          
+          // 平日のみ
+          if (dayOfWeek > 0 && dayOfWeek < 6) {
+            data.push({
+              clock_in: new Date(year, month, day, 9, 0, 0).toISOString(),
+              clock_out: new Date(year, month, day, 18, 0, 0).toISOString(),
+              break_start: new Date(year, month, day, 12, 0, 0).toISOString(),
+              break_end: new Date(year, month, day, 13, 0, 0).toISOString(),
+              expected_wage: 8 * 1500
+            });
+            workDaysInMonth++;
+          }
+        }
+      }
     }
-    
+
     return data;
   }
 };
@@ -521,7 +632,8 @@ export const testPatterns: TestPattern[] = [
   crossMonthPattern,
   fullMonthPattern,
   threeMonthPattern,
-  partTimePattern
+  halfYearPattern,
+  firstHalf2025Pattern
 ]
 
 /**

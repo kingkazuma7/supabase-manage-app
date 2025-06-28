@@ -36,6 +36,7 @@ export const useAttendance = (staffId: string | null) => {
     lastClockIn: null,
     lastClockOut: null,
     status: null,
+    message: null,
     isOnBreak: false,
     breakStart: null,
     isBreakCompleted: false
@@ -118,13 +119,16 @@ export const useAttendance = (staffId: string | null) => {
     
     try {
       const supabase = createClient();
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
 
-      const firstDayOfCurrentMonth = new Date(currentYear, currentMonth, 1);
-      const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
-      const firstDayOfPreviousMonth = new Date(currentYear, currentMonth - 1, 1);
+      // 表示中の年月を基準に取得範囲を決定
+      const targetYear = viewYear;
+      const targetMonth = viewMonth; // 0-11
+
+      const firstDayOfTargetMonth = new Date(targetYear, targetMonth, 1);
+      const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59, 999);
+
+      // 月跨ぎ勤務を考慮して前月1日から取得
+      const firstDayOfPreviousMonth = new Date(targetYear, targetMonth - 1, 1);
       
       const { data: staffData, error: staffError } = await supabase
         .from('staff')
@@ -140,8 +144,8 @@ export const useAttendance = (staffId: string | null) => {
         .select('*')
         .eq('staff_id', staffId)
         .or(
-          `and(clock_in.gte.${firstDayOfPreviousMonth.toISOString()},clock_in.lte.${lastDayOfCurrentMonth.toISOString()}),` +
-          `and(clock_in.lt.${firstDayOfPreviousMonth.toISOString()},clock_out.gte.${firstDayOfCurrentMonth.toISOString()})`
+          `and(clock_in.gte.${firstDayOfPreviousMonth.toISOString()},clock_in.lte.${lastDayOfTargetMonth.toISOString()}),` +
+          `and(clock_in.lt.${firstDayOfPreviousMonth.toISOString()},clock_out.gte.${firstDayOfTargetMonth.toISOString()})`
         )
         .order('clock_in', { ascending: true });
 
@@ -167,8 +171,11 @@ export const useAttendance = (staffId: string | null) => {
           .filter(record => {
             const recordClockIn = new Date(record.clock_in);
             const recordClockOut = record.clock_out ? new Date(record.clock_out) : null;
-            return recordClockIn.getMonth() === currentMonth || 
-                  (recordClockOut && recordClockOut.getMonth() === currentMonth && recordClockIn.getMonth() !== currentMonth);
+            return (
+              recordClockIn.getFullYear() === targetYear && recordClockIn.getMonth() === targetMonth
+            ) || (
+              recordClockOut && recordClockOut.getFullYear() === targetYear && recordClockOut.getMonth() === targetMonth && recordClockIn.getMonth() !== targetMonth
+            );
           })
           .map(record => {
             const recordClockIn = new Date(record.clock_in);
@@ -187,7 +194,7 @@ export const useAttendance = (staffId: string | null) => {
             };
           });
 
-        setRecords(formattedRecords);
+        setRecords(formattedRecords as unknown as AttendanceRecord[]);
 
         // 本日の勤務時間設定
         const todayRecord = attendanceData.find(record => {
@@ -239,6 +246,7 @@ export const useAttendance = (staffId: string | null) => {
           lastClockIn: lastUnclockedOut?.clock_in || lastClockedOut?.clock_in || null,
           lastClockOut: lastUnclockedOut ? null : (lastClockedOut?.clock_out || null),
           status: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null),
+          message: lastUnclockedOut ? '勤務中' : (lastClockedOut ? '退勤済み' : null),
           isOnBreak: !!(lastUnclockedOut?.break_start && !lastUnclockedOut?.break_end),
           breakStart: lastUnclockedOut?.break_start || null,
           isBreakCompleted: !!(lastUnclockedOut?.break_start && lastUnclockedOut?.break_end)
@@ -255,7 +263,7 @@ export const useAttendance = (staffId: string | null) => {
       console.error('データ取得エラー:', err);
       setError(err instanceof Error ? err.message : ATTENDANCE_ERRORS.FETCH_ERROR);
     }
-  }, [staffId]);
+  }, [staffId, viewYear, viewMonth]);
 
   useEffect(() => {
     fetchData();
