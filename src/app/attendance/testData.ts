@@ -164,22 +164,22 @@ const multiDayPattern: TestPattern = {
       
       switch (i) {
         case 3: // 3日前：通常勤務
-          data.push({
+    data.push({
             clock_in: new Date(targetDate.setHours(9, 0, 0)).toISOString(),
             clock_out: new Date(targetDate.setHours(18, 0, 0)).toISOString(),
             break_start: new Date(targetDate.setHours(12, 0, 0)).toISOString(),
             break_end: new Date(targetDate.setHours(13, 0, 0)).toISOString(),
-            expected_wage: 8 * 1500 // 実働8時間
+      expected_wage: 8 * 1500 // 実働8時間
           });
           break;
-          
+    
         case 2: // 2日前：夜勤
-          data.push({
+    data.push({
             clock_in: new Date(targetDate.setHours(20, 0, 0)).toISOString(),
             clock_out: new Date(targetDate.setHours(23, 30, 0)).toISOString(),
             break_start: new Date(targetDate.setHours(21, 30, 0)).toISOString(),
             break_end: new Date(targetDate.setHours(21, 45, 0)).toISOString(),
-            expected_wage: Math.round(3.25 * 1500) // 実働3.25時間
+      expected_wage: Math.round(3.25 * 1500) // 実働3.25時間
           });
           break;
           
@@ -189,12 +189,12 @@ const multiDayPattern: TestPattern = {
           
           // 日付跨ぎの場合でも、終了時刻が今日を超えないようにする
           if (nextDate < today) {
-            data.push({
+    data.push({
               clock_in: new Date(targetDate.setHours(21, 0, 0)).toISOString(),
               clock_out: new Date(nextDate.setHours(2, 30, 0)).toISOString(),
               break_start: new Date(targetDate.setHours(23, 0, 0)).toISOString(),
               break_end: new Date(targetDate.setHours(23, 30, 0)).toISOString(),
-              expected_wage: Math.round(5 * 1500) // 実働5時間
+      expected_wage: Math.round(5 * 1500) // 実働5時間
             });
           }
           break;
@@ -347,37 +347,37 @@ const threeMonthPattern: TestPattern = {
 
         switch (dayOfWeek) {
           case 0: // 日曜：夜勤（3.5h）- 休憩15分
-            clockIn = new Date(year, month, day, 20, 0, 0);
-            clockOut = new Date(year, month, day, 23, 30, 0);
-            breakStart = new Date(year, month, day, 21, 30, 0);
-            breakEnd = new Date(year, month, day, 21, 45, 0);
-            expectedWage = Math.round(3.25 * 1500);
+          clockIn = new Date(year, month, day, 20, 0, 0);
+          clockOut = new Date(year, month, day, 23, 30, 0);
+          breakStart = new Date(year, month, day, 21, 30, 0);
+          breakEnd = new Date(year, month, day, 21, 45, 0);
+          expectedWage = Math.round(3.25 * 1500);
             break;
 
           case 6: // 土曜：日付跨ぎ（5.5h）- 休憩30分
-            const nextDay = new Date(year, month, day + 1);
-            clockIn = new Date(year, month, day, 21, 0, 0);
-            clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
-            breakStart = new Date(year, month, day, 23, 0, 0);
-            breakEnd = new Date(year, month, day, 23, 30, 0);
-            expectedWage = Math.round(5 * 1500);
+          const nextDay = new Date(year, month, day + 1);
+          clockIn = new Date(year, month, day, 21, 0, 0);
+          clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
+          breakStart = new Date(year, month, day, 23, 0, 0);
+          breakEnd = new Date(year, month, day, 23, 30, 0);
+          expectedWage = Math.round(5 * 1500);
             break;
 
           default: // 平日：通常勤務（9h）- 休憩1時間
-            clockIn = new Date(year, month, day, 9, 0, 0);
-            clockOut = new Date(year, month, day, 18, 0, 0);
-            breakStart = new Date(year, month, day, 12, 0, 0);
-            breakEnd = new Date(year, month, day, 13, 0, 0);
-            expectedWage = 8 * 1500;
+          clockIn = new Date(year, month, day, 9, 0, 0);
+          clockOut = new Date(year, month, day, 18, 0, 0);
+          breakStart = new Date(year, month, day, 12, 0, 0);
+          breakEnd = new Date(year, month, day, 13, 0, 0);
+          expectedWage = 8 * 1500;
         }
 
-        data.push({
-          clock_in: clockIn.toISOString(),
-          clock_out: clockOut.toISOString(),
-          break_start: breakStart.toISOString(),
-          break_end: breakEnd.toISOString(),
-          expected_wage: expectedWage
-        });
+          data.push({
+            clock_in: clockIn.toISOString(),
+            clock_out: clockOut.toISOString(),
+            break_start: breakStart.toISOString(),
+            break_end: breakEnd.toISOString(),
+            expected_wage: expectedWage
+          });
         workDaysInMonth++;
       }
     });
@@ -459,11 +459,11 @@ const halfYearPattern: TestPattern = {
             expectedWage = 8 * 1500;
         }
 
-        data.push({
-          clock_in: clockIn.toISOString(),
+          data.push({
+            clock_in: clockIn.toISOString(),
           clock_out: clockOut.toISOString(),
-          break_start: breakStart.toISOString(),
-          break_end: breakEnd.toISOString(),
+            break_start: breakStart.toISOString(),
+            break_end: breakEnd.toISOString(),
           expected_wage: expectedWage
         });
         workDaysInMonth++;
@@ -618,6 +618,112 @@ const firstHalf2025Pattern: TestPattern = {
 };
 
 /**
+ * 1年分のテストデータパターン（月15日程度の勤務）
+ */
+const fullYearPattern: TestPattern = {
+  name: '1年分データ',
+  description: '過去1年分のデータ（月15日程度、休憩付き、月跨ぎ含む）',
+  generate: () => {
+    const today = new Date();
+    const data = [];
+    const targetDaysPerMonth = 15; // 月あたりの目標勤務日数
+
+    // 過去12ヶ月分のデータを生成
+    for (let monthOffset = 12; monthOffset > 0; monthOffset--) {
+      const targetDate = new Date(today);
+      targetDate.setMonth(today.getMonth() - monthOffset);
+      const year = targetDate.getFullYear();
+      const month = targetDate.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let workDaysInMonth = 0;
+
+      // 月末の日付跨ぎデータを追加（今月は除外）
+      if (monthOffset > 1) {
+        const nextMonth = new Date(year, month + 1, 1);
+        data.push({
+          clock_in: new Date(year, month, daysInMonth, 21, 0, 0).toISOString(),
+          clock_out: new Date(nextMonth.getFullYear(), nextMonth.getMonth(), nextMonth.getDate(), 2, 30, 0).toISOString(),
+          break_start: new Date(year, month, daysInMonth, 23, 0, 0).toISOString(),
+          break_end: new Date(year, month, daysInMonth, 23, 30, 0).toISOString(),
+          expected_wage: Math.round(5 * 1500)
+        });
+        workDaysInMonth++;
+      }
+
+      // 各日のデータを生成（より確実に目標日数を達成）
+      const targetDays = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        if (date >= today) break;
+        
+        const dayOfWeek = date.getDay();
+        // 平日を優先的に選択
+        if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+          targetDays.push(day);
+        }
+      }
+
+      // 土日も追加
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        if (date >= today) break;
+        
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          targetDays.push(day);
+        }
+      }
+
+      // シャッフルして目標日数分選択
+      targetDays.sort(() => Math.random() - 0.5);
+      const selectedDays = targetDays.slice(0, targetDaysPerMonth - workDaysInMonth);
+
+      selectedDays.forEach(day => {
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.getDay();
+        let clockIn, clockOut, breakStart, breakEnd, expectedWage;
+
+        switch (dayOfWeek) {
+          case 0: // 日曜：夜勤
+            clockIn = new Date(year, month, day, 20, 0, 0);
+            clockOut = new Date(year, month, day, 23, 30, 0);
+            breakStart = new Date(year, month, day, 21, 30, 0);
+            breakEnd = new Date(year, month, day, 21, 45, 0);
+            expectedWage = Math.round(3.25 * 1500);
+            break;
+
+          case 6: // 土曜：日付跨ぎ
+            const nextDay = new Date(year, month, day + 1);
+            clockIn = new Date(year, month, day, 21, 0, 0);
+            clockOut = new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(), 2, 30, 0);
+            breakStart = new Date(year, month, day, 23, 0, 0);
+            breakEnd = new Date(year, month, day, 23, 30, 0);
+            expectedWage = Math.round(5 * 1500);
+            break;
+
+          default: // 平日：通常勤務
+            clockIn = new Date(year, month, day, 9, 0, 0);
+            clockOut = new Date(year, month, day, 18, 0, 0);
+            breakStart = new Date(year, month, day, 12, 0, 0);
+            breakEnd = new Date(year, month, day, 13, 0, 0);
+            expectedWage = 8 * 1500;
+        }
+
+        data.push({
+          clock_in: clockIn.toISOString(),
+          clock_out: clockOut.toISOString(),
+          break_start: breakStart.toISOString(),
+          break_end: breakEnd.toISOString(),
+          expected_wage: expectedWage
+        });
+      });
+    }
+
+    return data;
+  }
+};
+
+/**
  * 利用可能なテストパターン
  */
 export const testPatterns: TestPattern[] = [
@@ -633,7 +739,8 @@ export const testPatterns: TestPattern[] = [
   fullMonthPattern,
   threeMonthPattern,
   halfYearPattern,
-  firstHalf2025Pattern
+  firstHalf2025Pattern,
+  fullYearPattern
 ]
 
 /**
@@ -734,12 +841,12 @@ export const insertAndValidateTestData = async (staffId: string, patternName: st
 };
 
 /**
- * 給与計算関数（テスト用）
+ * 給与計算関数（テスト用）- 休憩時間を考慮
  */
 const calculateWage = async (supabase: SupabaseClient, recordId: string) => {
   const { data } = await supabase
     .from('attendance')
-    .select('clock_in, clock_out')
+    .select('clock_in, clock_out, break_start, break_end')
     .eq('id', recordId)
     .single()
   
@@ -747,16 +854,37 @@ const calculateWage = async (supabase: SupabaseClient, recordId: string) => {
   
   const clockIn = new Date(data.clock_in)
   const clockOut = new Date(data.clock_out)
+  const breakStart = data.break_start ? new Date(data.break_start) : null
+  const breakEnd = data.break_end ? new Date(data.break_end) : null
+  
   let total = 0
   const current = new Date(clockIn)
   
   while (current < clockOut) {
+    const nextHour = new Date(current)
+    nextHour.setHours(current.getHours() + 1)
+    
+    // 休憩時間をスキップ
+    if (breakStart && breakEnd && 
+        current >= breakStart && current < breakEnd) {
+      current.setTime(nextHour.getTime())
+      continue
+    }
+    
     const hour = current.getHours()
-    let rate = hour >= 22 ? 1875 : 1500
-    if (current.getDate() !== clockIn.getDate()) rate = 2000 // 日付跨ぎ
+    let rate = 1500 // 基本時給
+    
+    if (hour >= 22 || hour < 6) {
+      rate = 1875 // 夜勤手当
+    }
+    
+    // 日付跨ぎの場合は深夜手当
+    if (current.getDate() !== clockIn.getDate()) {
+      rate = 2000
+    }
     
     total += rate
-    current.setHours(current.getHours() + 1)
+    current.setTime(nextHour.getTime())
   }
   
   return total

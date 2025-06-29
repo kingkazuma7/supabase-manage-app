@@ -260,16 +260,34 @@ function AttendanceContent() {
                   複数日データ
                 </button>
                 <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分')}
+                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分（跨ぎ含む）')}
                   className={styles.buttonTest}
                 >
                   3ヶ月分データ
                 </button>
                 <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '過去6ヶ月（均等分散）')}
+                  onClick={() => insertAndValidateTestData(staffId || '', '半年分データ')}
                   className={styles.buttonTest}
                 >
                   過去6ヶ月（均等分散）データ
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '2025年上半期')}
+                  className={styles.buttonTest}
+                >
+                  2025年上半期データ
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '1ヶ月分フルフル')}
+                  className={styles.buttonTest}
+                >
+                  1ヶ月分フルデータ
+                </button>
+                <button 
+                  onClick={() => insertAndValidateTestData(staffId || '', '1年分データ')}
+                  className={styles.buttonTest}
+                >
+                  1年分データ（月15日程度）
                 </button>
               </div>
               <button 
