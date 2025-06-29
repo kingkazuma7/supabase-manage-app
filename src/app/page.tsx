@@ -236,9 +236,9 @@ export default function Home() {
                 <button
                   type="submit"
                   className={styles.buttonPrimary}
-                  aria-label="認証"
+                  aria-label="ログイン"
                 >
-                  🔐 認証
+                  ログイン
                 </button>
               </div>
             </form>
