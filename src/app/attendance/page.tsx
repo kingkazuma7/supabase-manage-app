@@ -21,6 +21,12 @@ import { useRouter } from 'next/navigation'
 function AttendanceContent() {
   const searchParams = useSearchParams()
   const staffId = searchParams.get('staffId')
+  
+  const router = useRouter();
+  const handleGoBack = () => { // ホームに戻る
+    router.push('/');
+  }
+  
   const {
     staff,
     records,
@@ -227,6 +233,7 @@ function AttendanceContent() {
         >
           休憩終了
         </button>
+        <button onClick={handleGoBack} className={styles.buttonSecondary}>ホームに戻る</button>
       </div>
 
       {process.env.NODE_ENV === 'development' && (
