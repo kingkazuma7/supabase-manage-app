@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from './utils/supabase/client'
 import { useRouter } from 'next/navigation'
+import { FaEye, FaEyeSlash } from 'react-icons/fa'
 import styles from './page.module.css'
 
 /**
@@ -26,9 +27,12 @@ export default function Home() {
   const [password, setPassword] = useState('') // パスワードを状態に保存
   const [error, setError] = useState<string | null>(null) // エラーメッセージを状態に保存
   const [loading, setLoading] = useState(true) // 読み込み中のフラグ
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
-  const [newStaffName, setNewStaffName] = useState('')
-  const [newStaffPassword, setNewStaffPassword] = useState('')
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false) // アカウント作成モーダルの表示/非表示
+  const [newStaffName, setNewStaffName] = useState('') // 新規アカウントの名前
+  const [newStaffPassword, setNewStaffPassword] = useState('') // 新規アカウントのパスワード
+  const [showPassword, setShowPassword] = useState(false) // パスワード表示/非表示の状態
+  console.log(showPassword);
+  
   const router = useRouter() // ルーターを使用
 
   /**
@@ -209,16 +213,31 @@ export default function Home() {
               {selectedStaff.name}さんのパスワードを入力
             </h2>
             <form onSubmit={handlePasswordSubmit} className={styles.form}>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={styles.input}
-                placeholder="パスワード"
-                required
-                autoComplete="current-password"
-                aria-label="パスワード"
-              />
+              <div className={styles.passwordInputContainer}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={styles.passwordInputField}
+                  placeholder="パスワード"
+                  required
+                  autoComplete="current-password"
+                  aria-label="パスワード"
+                />
+                <span
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'パスワードを非表示にする' : 'パスワードを表示する'}
+                  role="button"
+                  tabIndex={0}
+                >
+                  {showPassword ? (
+                    <FaEyeSlash />
+                  ) : (
+                    <FaEye />
+                  )}
+                </span>
+              </div>
               {error && (
                 <div className={styles.error} role="alert">
                   {error}

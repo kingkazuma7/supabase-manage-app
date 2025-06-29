@@ -357,3 +357,43 @@ a.secondary {
     color: var(--foreground);
   }
 }
+
+/* パスワード入力フィールドとアイコンを囲むコンテナ */
+.passwordInputContainer {
+  position: relative; /* 子要素のabsolute配置の基準となる */
+  width: 100%; /* 親要素 (form) の幅に合わせる */
+  margin-bottom: 1rem; /* エラーメッセージやボタンとの間に余白 */
+}
+
+/* パスワード入力フィールド自体のスタイル */
+.passwordInputField { /* inputタグに適用する新しいクラス */
+  width: 100%;
+  padding: 0.75rem 1rem;
+  padding-right: 3rem; /* アイコン分のスペースを確保 */
+  border: 1px solid #a0a0a0; /* 既に修正済みであればこの行は不要 */
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: var(--foreground);
+  background: var(--background);
+  box-sizing: border-box;
+}
+
+/* パスワード表示/非表示トグルのスタイル */
+.togglePassword {
+  position: absolute; /* 親要素 .passwordInputContainer を基準に配置 */
+  right: 1rem; /* 右端からの距離 */
+  top: 50%; /* 上から50%の位置 */
+  transform: translateY(-50%); /* 垂直方向の中央揃え */
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--gray-rgb); /* テキスト色に合わせる */
+  user-select: none; /* テキスト選択不可にする */
+  padding: 0.2rem; /* クリックしやすいようにパディング */
+  display: flex; /* アイコンが文字の場合に中央揃えをより確実に */
+  align-items: center;
+  justify-content: center;
+}
+
+.togglePassword:hover {
+  opacity: 0.8; /* ホバー時の視覚フィードバック */
+}
