@@ -11,10 +11,12 @@ import styles from './page.module.css'
  * @typedef {Object} Staff
  * @property {string} id - スタッフの一意のID
  * @property {string} name - スタッフの名前
+ * @property {string} email - スタッフのメールアドレス
  */
 type Staff = {
   id: string
   name: string
+  email: string
 }
 
 /**
@@ -33,6 +35,10 @@ export default function Home() {
   const [newStaffPassword, setNewStaffPassword] = useState('') // 新規アカウントのパスワード
   const [showPassword, setShowPassword] = useState(false) // パスワード表示/非表示の状態
   const [successMessage, setSuccessMessage] = useState<string | null>(null) // 成功メッセージを状態に保存
+  const [isEditingAccount, setIsEditingAccount] = useState(false) // 編集モーダルの表示/非表示
+  const [selectedStaffForEdit, setSelectedStaffForEdit] = useState<Staff | null>(null) // 編集対象のスタッフ
+  const [editingStaffName, setEditingStaffName] = useState('') // 編集フォームの名前入力値
+  const [editingStaffEmail, setEditingStaffEmail] = useState('') // 編集フォームのメールアドレス入力値
   
   const router = useRouter() // ルーターを使用
 
@@ -70,6 +76,18 @@ export default function Home() {
     setPassword('') // パスワードをクリア
     setError(null) // エラーメッセージをクリア
   }
+  
+  /**
+   * スタッフの編集モーダルを開く処理
+   * @param {Staff} staff - 編集対象のスタッフ情報
+   * @returns {void}
+   */
+  const handleEditAccountClick = (staff: Staff) => {
+    setSelectedStaffForEdit(staff) // 編集対象のスタッフをセット
+    setEditingStaffName(staff.name) // 編集フォームの名前をセット
+    setEditingStaffEmail(staff.email) // 編集フォームのメールアドレスをセット
+    setIsEditingAccount(true) // 編集モーダルを表示
+  }
 
   /**
    * パスワード認証の処理
@@ -79,6 +97,12 @@ export default function Home() {
    */
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // エラーメッセージをクリア
+    setError(null)
+    // 成功メッセージをクリア
+    setSuccessMessage(null)
+    
     if (!selectedStaff) return
 
     try {
@@ -103,6 +127,67 @@ export default function Home() {
       setError('パスワードが正しくありません')
     }
   }
+  
+  /**
+   * アカウントの更新処理
+   * @async
+   * @param {React.FormEvent} e - フォームイベント
+   * @returns {Promise<void>}
+   */
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // エラーメッセージをクリア
+    setError(null)
+    // 成功メッセージをクリア
+    setSuccessMessage(null)
+    
+    if (!selectedStaffForEdit) {
+      setError('編集対象のスタッフが選択されていません');
+      return
+    };
+    
+    if (!editingStaffName || !editingStaffEmail) {
+      setError('名前とメールアドレスが必要です')
+      return
+    };
+    
+    try {
+      const response = await fetch('/api/auth/update-account', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: selectedStaffForEdit.id,
+          name: editingStaffName,
+          email: editingStaffEmail,
+        }),
+      })
+      
+      // エラー処理
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'アカウントの更新に失敗しました')
+      }
+      
+      // 成功メッセージ
+      setSuccessMessage('アカウントの更新に成功しました');
+      
+      // スタッフ一覧を更新
+      const supabase = createClient();
+      const { data } = await supabase.from('staff').select('*');
+      setStaff(data || []); // スタッフデータを状態に保存
+      
+      setTimeout(() => {
+        setIsEditingAccount(false); // 編集モーダルを閉じる
+        setSelectedStaffForEdit(null); // 編集対象のスタッフをクリア
+        setSuccessMessage(null); // 成功メッセージをクリア
+      }, 2000);
+    } catch (error) {
+      setError((error as Error).message || 'アカウントの更新に失敗しました')
+    }
+  }
 
   /**
    * 新規アカウント作成の処理
@@ -112,6 +197,11 @@ export default function Home() {
    */
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // エラーメッセージをクリア
+    setError(null)
+    // 成功メッセージをクリア
+    setSuccessMessage(null)
 
     if (!newStaffName || !newStaffEmail || !newStaffPassword) {
       setError('名前、メールアドレス、パスワードが必要です')
@@ -157,7 +247,7 @@ export default function Home() {
       setTimeout(() => {
         setIsCreatingAccount(false); // 3秒後モーダル閉じる
         setSuccessMessage(null); // 3秒後成功メッセージをクリア
-      }, 3000);
+      }, 2000);
     } catch (error: unknown) {
       setError((error as Error).message || 'アカウントの作成に失敗しました')
     }
@@ -170,6 +260,11 @@ export default function Home() {
    * @returns {Promise<void>}
    */
   const handleDeleteAccount = async (staffId: string) => {
+    // エラーメッセージをクリア
+    setError(null)
+    // 成功メッセージをクリア
+    setSuccessMessage(null)
+    
     if (!confirm('本当にこのアカウントを削除しますか？')) {
       return;
     }
@@ -218,6 +313,11 @@ export default function Home() {
             >
               👤 {person.name}
             </button>
+            <button
+              onClick={() => handleEditAccountClick(person)}
+              className={styles.button}
+              aria-label={`${person.name}を編集`}
+            >編集</button>
             <button
               onClick={() => handleDeleteAccount(person.id)}
               className={styles.buttonDanger}
@@ -353,6 +453,73 @@ export default function Home() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      
+      {/* アカウント編集モーダル */}
+      {isEditingAccount && selectedStaffForEdit && (
+        <div className={styles.modal} role="dialog" aria-modal="true">
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>アカウント編集</h2>
+            <form onSubmit={handleUpdateAccount} className={styles.form}>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="editStaffName">名前:</label>
+                  <input
+                    id="editStaffName"
+                    type="text"
+                    value={editingStaffName}
+                    onChange={(e) => setEditingStaffName(e.target.value)}
+                    className={styles.input}
+                    placeholder="スタッフ名"
+                    required
+                    aria-label="スタッフ名"
+                  />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label htmlFor="editStaffEmail">メールアドレス:</label>
+                  <input
+                    id="editStaffEmail"
+                    type="email"
+                    value={editingStaffEmail}
+                    onChange={(e) => setEditingStaffEmail(e.target.value)}
+                    className={styles.input}
+                    placeholder="メールアドレス"
+                    aria-label="メールアドレス"
+                  />
+                </div>
+                {successMessage && (
+                  <div className={styles.success} role="alert">
+                    {successMessage}
+                  </div>
+                )}
+                {error && ( /* エラー表示も既存のロジックを参考に含める */
+                  <div className={styles.error} role="alert">
+                    {error}
+                  </div>
+                )}
+                <div className={styles.buttonGroup}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingAccount(false); // モーダルを閉じる
+                      setSelectedStaffForEdit(null); // 選択をクリア
+                      setError(null); // エラーメッセージをクリア
+                    }}
+                    className={styles.button}
+                    aria-label="キャンセル"
+                  >
+                    ✕ キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    className={styles.buttonPrimary}
+                    aria-label="更新"
+                  >
+                    更新
+                  </button>
+                </div>
+              </form>
           </div>
         </div>
       )}
