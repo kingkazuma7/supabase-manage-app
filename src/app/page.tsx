@@ -29,9 +29,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true) // 読み込み中のフラグ
   const [isCreatingAccount, setIsCreatingAccount] = useState(false) // アカウント作成モーダルの表示/非表示
   const [newStaffName, setNewStaffName] = useState('') // 新規アカウントの名前
+  const [newStaffEmail, setNewStaffEmail] = useState('') // 新規アカウントのメールアドレス
   const [newStaffPassword, setNewStaffPassword] = useState('') // 新規アカウントのパスワード
   const [showPassword, setShowPassword] = useState(false) // パスワード表示/非表示の状態
-  console.log(showPassword);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null) // 成功メッセージを状態に保存
   
   const router = useRouter() // ルーターを使用
 
@@ -111,6 +112,17 @@ export default function Home() {
    */
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!newStaffName || !newStaffEmail || !newStaffPassword) {
+      setError('名前、メールアドレス、パスワードが必要です')
+      return
+    };
+    
+    if (!newStaffEmail.includes('@') || !newStaffEmail.includes('.')) {
+      setError('有効なメールアドレスを入力してください。');
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/create-account', {
         method: 'POST',
@@ -119,23 +131,35 @@ export default function Home() {
         },
         body: JSON.stringify({
           name: newStaffName,
+          email: newStaffEmail,
           password: newStaffPassword,
         }),
       })
 
+      // エラー処理
       if (!response.ok) {
-        throw new Error('アカウントの作成に失敗しました')
+        const errorData = await response.json()
+        console.error('API Error:', errorData);
+        throw new Error(errorData.message || 'アカウントの作成に失敗しました'); // エラーメッセージをAPIから取得
       }
+      
+      // 成功メッセージ
+      setSuccessMessage('アカウントの作成に成功しました');
 
       // アカウント作成成功後、スタッフ一覧を更新
       const supabase = createClient()
       const { data } = await supabase.from('staff').select('*')
       setStaff(data || [])
-      setIsCreatingAccount(false)
-      setNewStaffName('')
-      setNewStaffPassword('')
-    } catch (error) {
-      setError('アカウントの作成に失敗しました')
+      setNewStaffName('');
+      setNewStaffEmail('');
+      setNewStaffPassword('');
+      
+      setTimeout(() => {
+        setIsCreatingAccount(false); // 3秒後モーダル閉じる
+        setSuccessMessage(null); // 3秒後成功メッセージをクリア
+      }, 3000);
+    } catch (error: any) {
+      setError(error.message || 'アカウントの作成に失敗しました')
     }
   }
 
@@ -282,6 +306,16 @@ export default function Home() {
                 aria-label="名前"
               />
               <input
+                id="newStaffEmail"
+                type="email"
+                value={newStaffEmail}
+                onChange={(e) => setNewStaffEmail(e.target.value)}
+                className={styles.input}
+                placeholder="メールアドレス"
+                required
+                aria-label="メールアドレス"
+              />
+              <input
                 type="password"
                 value={newStaffPassword}
                 onChange={(e) => setNewStaffPassword(e.target.value)}
@@ -291,6 +325,11 @@ export default function Home() {
                 autoComplete="new-password"
                 aria-label="パスワード"
               />
+              {successMessage && (
+                <div className={styles.success} role="alert">
+                  {successMessage}
+                </div>
+              )}
               {error && (
                 <div className={styles.error} role="alert">
                   {error}

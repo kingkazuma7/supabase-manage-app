@@ -4,10 +4,11 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     // リクエストからデータを取得
-    const { name, password } = await request.json();
+    const { name, email, password } = await request.json();
+    console.log(name, email, password);
 
     // 必須チェック
-    if (!name || !password) {
+    if (!name || !password || !email) {
       return NextResponse.json(
         { error: '名前とパスワードが必要です' },
         { status: 400 }
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     // スタッフを追加
     const { data, error } = await supabase
       .from('staff')
-      .insert({ name, password })
+      .insert({ name, email, password })
       .select()
       .single();
 
