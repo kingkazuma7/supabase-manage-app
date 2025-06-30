@@ -158,8 +158,8 @@ export default function Home() {
         setIsCreatingAccount(false); // 3秒後モーダル閉じる
         setSuccessMessage(null); // 3秒後成功メッセージをクリア
       }, 3000);
-    } catch (error: any) {
-      setError(error.message || 'アカウントの作成に失敗しました')
+    } catch (error: unknown) {
+      setError((error as Error).message || 'アカウントの作成に失敗しました')
     }
   }
 
