@@ -141,6 +141,13 @@ export const calculateWageForTimeRange = (
     // 次の時間帯へ
     currentTime = new Date(slotEndTime);
   }
+  
+  let finalWage = Math.round(totalWage);
+  
+  // 給与がマイナスになってしまった場合は0円にする
+  if (finalWage < 0) {
+    finalWage = 0;
+  }
 
-  return Math.round(totalWage);
+  return finalWage;
 }; 
