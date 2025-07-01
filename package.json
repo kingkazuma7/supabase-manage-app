@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "generate-docs": "node docs/generate-pdf.js"
+    "generate-docs": "node docs/generate-pdf.js",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -34,6 +35,7 @@
     "jest": "^30.0.0",
     "jest-environment-jsdom": "^30.0.0",
     "markdown-pdf": "^11.0.0",
+    "prettier": "^3.6.2",
     "supabase": "^2.24.3",
     "ts-jest": "^29.4.0",
     "typescript": "^5"
