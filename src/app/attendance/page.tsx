@@ -1,32 +1,43 @@
-'use client'
+"use client";
 
-import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
-import styles from './attendance.module.css'
-import Link from 'next/link'
-import { insertAndValidateTestData, deleteTestData, testPatterns } from './testData'
-import { useAttendance } from './hooks/useAttendance'
-import { Staff, AttendanceRecord, WorkTime, AttendanceStatus, MonthlyTotal } from './types'
-import { 
-  calculateWorkTime, 
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import styles from "./attendance.module.css";
+import Link from "next/link";
+import {
+  insertAndValidateTestData,
+  deleteTestData,
+  testPatterns,
+} from "./testData";
+import { useAttendance } from "./hooks/useAttendance";
+import {
+  Staff,
+  AttendanceRecord,
+  WorkTime,
+  AttendanceStatus,
+  MonthlyTotal,
+} from "./types";
+import {
+  calculateWorkTime,
   calculateActualWorkTime,
   getMinutesFromHHMM,
-  formatMinutesToTime
-} from './utils/calculations'
-import { calculateWageForTimeRange } from './utils/wageCalculator'
-import { formatDateWithWeekday, formatTimeString } from './utils/dateUtils'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+  formatMinutesToTime,
+} from "./utils/calculations";
+import { calculateWageForTimeRange } from "./utils/wageCalculator";
+import { formatDateWithWeekday, formatTimeString } from "./utils/dateUtils";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 function AttendanceContent() {
-  const searchParams = useSearchParams()
-  const staffId = searchParams.get('staffId')
-  
+  const searchParams = useSearchParams();
+  const staffId = searchParams.get("staffId");
+
   const router = useRouter();
-  const handleGoBack = () => { // ホームに戻る
-    router.push('/');
-  }
-  
+  const handleGoBack = () => {
+    // ホームに戻る
+    router.push("/");
+  };
+
   const {
     staff,
     records,
@@ -41,13 +52,13 @@ function AttendanceContent() {
     setViewMonth,
     handleAttendance,
     handleBreak,
-    fixData
+    fixData,
   } = useAttendance(staffId);
 
-  if (!staff) return <div className={styles.loading}>読み込み中...</div>
+  if (!staff) return <div className={styles.loading}>読み込み中...</div>;
 
   // 表示月のレコードのみ抽出
-  const filteredRecords = records.filter(record => {
+  const filteredRecords = records.filter((record) => {
     const date = new Date(record.originalClockIn);
     return date.getFullYear() === viewYear && date.getMonth() === viewMonth;
   });
@@ -59,7 +70,7 @@ function AttendanceContent() {
         record.originalClockIn,
         record.originalClockOut,
         record.breakStart,
-        record.breakEnd
+        record.breakEnd,
       );
       return total + getMinutesFromHHMM(workTime);
     }
@@ -71,11 +82,14 @@ function AttendanceContent() {
   // 月次合計給与を計算
   const monthlyWageTotal = filteredRecords.reduce((total, record) => {
     if (record.clockOut && record.originalClockIn && record.originalClockOut) {
-      return total + calculateWageForTimeRange(
-        new Date(record.originalClockIn),
-        new Date(record.originalClockOut),
-        record.breakStart ? new Date(record.breakStart) : null,
-        record.breakEnd ? new Date(record.breakEnd) : null
+      return (
+        total +
+        calculateWageForTimeRange(
+          new Date(record.originalClockIn),
+          new Date(record.originalClockOut),
+          record.breakStart ? new Date(record.breakStart) : null,
+          record.breakEnd ? new Date(record.breakEnd) : null,
+        )
       );
     }
     return total;
@@ -84,11 +98,13 @@ function AttendanceContent() {
   return (
     <div className={styles.container}>
       {error && <div className={styles.error}>{error}</div>}
-      
+
       <div className={styles.header}>
         <h1>{staff.name}さんの勤怠記録</h1>
         <div className={styles.status}>
-          {status.isWorking && <span className={styles.working}>{status.message}</span>}
+          {status.isWorking && (
+            <span className={styles.working}>{status.message}</span>
+          )}
         </div>
       </div>
 
@@ -131,7 +147,9 @@ function AttendanceContent() {
         </div>
         <div>
           <span>月間合計給与：</span>
-          <span className={styles.totalWage}>¥{monthlyWageTotal.toLocaleString()}</span>
+          <span className={styles.totalWage}>
+            ¥{monthlyWageTotal.toLocaleString()}
+          </span>
         </div>
       </div>
 
@@ -158,42 +176,38 @@ function AttendanceContent() {
                     {formatTimeString(new Date(record.originalClockIn))}
                   </td>
                   <td className={styles.recordTime}>
-                    {record.clockOut ? (
-                      formatTimeString(new Date(record.originalClockOut!))
-                    ) : (
-                      '-'
-                    )}
+                    {record.clockOut
+                      ? formatTimeString(new Date(record.originalClockOut!))
+                      : "-"}
                   </td>
                   <td className={styles.recordBreak}>
-                    {record.breakStart && record.breakEnd ? (
-                      calculateWorkTime(record.breakStart, record.breakEnd)
-                    ) : (
-                      '-'
-                    )}
+                    {record.breakStart && record.breakEnd
+                      ? calculateWorkTime(record.breakStart, record.breakEnd)
+                      : "-"}
                   </td>
                   <td className={styles.recordWorkTime}>
-                    {record.clockOut ? (
-                      calculateActualWorkTime(
-                        record.originalClockIn,
-                        record.originalClockOut!,
-                        record.breakStart,
-                        record.breakEnd
-                      )
-                    ) : (
-                      '-'
-                    )}
+                    {record.clockOut
+                      ? calculateActualWorkTime(
+                          record.originalClockIn,
+                          record.originalClockOut!,
+                          record.breakStart,
+                          record.breakEnd,
+                        )
+                      : "-"}
                   </td>
                   <td className={styles.recordWage}>
-                    {record.clockOut && record.originalClockIn && record.originalClockOut ? (
-                      `¥${calculateWageForTimeRange(
-                        new Date(record.originalClockIn),
-                        new Date(record.originalClockOut),
-                        record.breakStart ? new Date(record.breakStart) : null,
-                        record.breakEnd ? new Date(record.breakEnd) : null
-                      ).toLocaleString()}`
-                    ) : (
-                      '-'
-                    )}
+                    {record.clockOut &&
+                    record.originalClockIn &&
+                    record.originalClockOut
+                      ? `¥${calculateWageForTimeRange(
+                          new Date(record.originalClockIn),
+                          new Date(record.originalClockOut),
+                          record.breakStart
+                            ? new Date(record.breakStart)
+                            : null,
+                          record.breakEnd ? new Date(record.breakEnd) : null,
+                        ).toLocaleString()}`
+                      : "-"}
                   </td>
                 </tr>
               ))}
@@ -206,99 +220,124 @@ function AttendanceContent() {
 
       <div className={styles.actionButtons}>
         <button
-          onClick={() => handleAttendance('出勤')}
+          onClick={() => handleAttendance("出勤")}
           disabled={status.isWorking || isTodayCompleted}
           className={styles.buttonPrimary}
         >
           出勤
         </button>
         <button
-          onClick={() => handleAttendance('退勤')}
+          onClick={() => handleAttendance("退勤")}
           disabled={!status.isWorking || status.isOnBreak}
           className={styles.buttonDanger}
         >
           退勤
         </button>
         <button
-          onClick={() => handleBreak('休憩開始')}
-          disabled={!status.isWorking || status.isOnBreak || status.isBreakCompleted}
+          onClick={() => handleBreak("休憩開始")}
+          disabled={
+            !status.isWorking || status.isOnBreak || status.isBreakCompleted
+          }
           className={styles.buttonSecondary}
         >
           休憩開始
         </button>
         <button
-          onClick={() => handleBreak('休憩終了')}
+          onClick={() => handleBreak("休憩終了")}
           disabled={!status.isOnBreak}
           className={styles.buttonSecondary}
         >
           休憩終了
         </button>
-        <button onClick={handleGoBack} className={styles.buttonSecondary}>ホームに戻る</button>
+        <button onClick={handleGoBack} className={styles.buttonSecondary}>
+          ホームに戻る
+        </button>
       </div>
 
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === "development" && (
         <div className={styles.testSection}>
           <details>
             <summary>テストデータ操作（開発環境のみ）</summary>
             <div className={styles.testActions}>
               <div className={styles.testButtons}>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '休憩付き通常勤務')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "休憩付き通常勤務")
+                  }
                   className={styles.buttonTest}
                 >
                   通常勤務パターン
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '夜勤休憩付き')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "夜勤休憩付き")
+                  }
                   className={styles.buttonTest}
                 >
                   夜勤パターン
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '日付跨ぎ休憩付き')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "日付跨ぎ休憩付き")
+                  }
                   className={styles.buttonTest}
                 >
                   日付跨ぎパターン
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '複数日')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "複数日")
+                  }
                   className={styles.buttonTest}
                 >
                   複数日データ
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '3ヶ月分（跨ぎ含む）')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(
+                      staffId || "",
+                      "3ヶ月分（跨ぎ含む）",
+                    )
+                  }
                   className={styles.buttonTest}
                 >
                   3ヶ月分データ
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '半年分データ')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "半年分データ")
+                  }
                   className={styles.buttonTest}
                 >
                   過去6ヶ月（均等分散）データ
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '2025年上半期')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "2025年上半期")
+                  }
                   className={styles.buttonTest}
                 >
                   2025年上半期データ
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '1ヶ月分フルフル')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "1ヶ月分フルフル")
+                  }
                   className={styles.buttonTest}
                 >
                   1ヶ月分フルデータ
                 </button>
-                <button 
-                  onClick={() => insertAndValidateTestData(staffId || '', '1年分データ')}
+                <button
+                  onClick={() =>
+                    insertAndValidateTestData(staffId || "", "1年分データ")
+                  }
                   className={styles.buttonTest}
                 >
                   1年分データ（月15日程度）
                 </button>
               </div>
-              <button 
-                onClick={() => deleteTestData(staffId || '')}
+              <button
+                onClick={() => deleteTestData(staffId || "")}
                 className={styles.buttonTest}
               >
                 全テストデータを削除

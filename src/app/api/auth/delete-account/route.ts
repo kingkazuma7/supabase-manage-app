@@ -1,5 +1,5 @@
-import { createClient } from '@/app/utils/supabase/server';
-import { NextResponse } from 'next/server';
+import { createClient } from "@/app/utils/supabase/server";
+import { NextResponse } from "next/server";
 
 /**
  * スタッフアカウントを削除するAPIエンドポイント
@@ -12,35 +12,32 @@ import { NextResponse } from 'next/server';
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const staffId = searchParams.get('staffId');
+    const staffId = searchParams.get("staffId");
 
     if (!staffId) {
       return NextResponse.json(
-        { error: 'スタッフIDが必要です' },
-        { status: 400 }
+        { error: "スタッフIDが必要です" },
+        { status: 400 },
       );
     }
 
     const supabase = await createClient();
 
-    const { error } = await supabase
-      .from('staff')
-      .delete()
-      .eq('id', staffId);
+    const { error } = await supabase.from("staff").delete().eq("id", staffId);
 
     if (error) {
       return NextResponse.json(
-        { error: 'アカウントの削除に失敗しました' },
-        { status: 500 }
+        { error: "アカウントの削除に失敗しました" },
+        { status: 500 },
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting account:', error);
+    console.error("Error deleting account:", error);
     return NextResponse.json(
-      { error: 'アカウントの削除中にエラーが発生しました' },
-      { status: 500 }
+      { error: "アカウントの削除中にエラーが発生しました" },
+      { status: 500 },
     );
   }
-} 
+}

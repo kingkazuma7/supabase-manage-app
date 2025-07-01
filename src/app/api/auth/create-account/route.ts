@@ -1,5 +1,5 @@
-import { createClient } from '@/app/utils/supabase/server';
-import { NextResponse } from 'next/server';
+import { createClient } from "@/app/utils/supabase/server";
+import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
@@ -10,8 +10,8 @@ export async function POST(request: Request) {
     // 必須チェック
     if (!name || !password || !email) {
       return NextResponse.json(
-        { error: '名前とパスワードが必要です' },
-        { status: 400 }
+        { error: "名前とパスワードが必要です" },
+        { status: 400 },
       );
     }
 
@@ -20,24 +20,24 @@ export async function POST(request: Request) {
 
     // スタッフを追加
     const { data, error } = await supabase
-      .from('staff')
+      .from("staff")
       .insert({ name, email, password })
       .select()
       .single();
 
     if (error) {
       return NextResponse.json(
-        { error: 'アカウントの作成に失敗しました' },
-        { status: 500 }
+        { error: "アカウントの作成に失敗しました" },
+        { status: 500 },
       );
     }
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error creating account:', error);
+    console.error("Error creating account:", error);
     return NextResponse.json(
-      { error: 'アカウントの作成中にエラーが発生しました' },
-      { status: 500 }
+      { error: "アカウントの作成中にエラーが発生しました" },
+      { status: 500 },
     );
   }
-} 
+}

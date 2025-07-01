@@ -67,7 +67,7 @@ export type AttendanceStatus = {
   /** 最後の退勤時間（ISO形式） */
   lastClockOut: string | null;
   /** 勤怠ステータス */
-  status: '勤務中' | '退勤済み' | null;
+  status: "勤務中" | "退勤済み" | null;
   /** ステータスメッセージ */
   message: string | null;
   /** 休憩中かどうか */
@@ -86,4 +86,4 @@ export type MonthlyTotal = {
   hours: number;
   /** 分 */
   minutes: number;
-}; 
+};

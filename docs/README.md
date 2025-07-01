@@ -11,16 +11,19 @@
 ## PDF生成方法
 
 ### 方法1: npmスクリプトを使用
+
 ```bash
 npm run generate-docs
 ```
 
 ### 方法2: 直接実行
+
 ```bash
 node docs/generate-pdf.js
 ```
 
 ### 方法3: 手動変換
+
 1. **VSCode + Markdown PDF拡張機能**
    - VSCodeでMarkdownファイルを開く
    - `Ctrl+Shift+P` → "Markdown PDF: Export (pdf)"
@@ -30,10 +33,11 @@ node docs/generate-pdf.js
    - [Pandoc Online](https://pandoc.org/try/)
 
 3. **Pandoc（ローカル）**
+
    ```bash
    # Pandocをインストール
    brew install pandoc
-   
+
    # PDFに変換
    pandoc "勤怠管理アプリ技術仕様書.md" -o "勤怠管理アプリ技術仕様書.pdf"
    ```
@@ -41,6 +45,7 @@ node docs/generate-pdf.js
 ## ドキュメント内容
 
 ### 技術仕様書の構成
+
 1. **プロジェクト概要** - 技術スタック、主要機能
 2. **アーキテクチャ設計** - 全体構成、レイヤー構造
 3. **データモデル** - データベーススキーマ、型定義
@@ -51,6 +56,7 @@ node docs/generate-pdf.js
 8. **運用・保守** - ログ管理、パフォーマンス最適化
 
 ### 重点項目
+
 - **ロジックに関する部分**を重点的に記載
 - **教科書的な説明**で理解しやすく構成
 - **サンプル出力**で実際の動作を確認可能
@@ -67,4 +73,4 @@ node docs/generate-pdf.js
 
 - このドキュメントは技術仕様書として作成されています
 - 開発・保守・運用の参考資料として使用してください
-- 定期的に更新し、最新の状態を保つようにしてください 
+- 定期的に更新し、最新の状態を保つようにしてください

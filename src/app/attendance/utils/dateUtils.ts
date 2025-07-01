@@ -6,21 +6,21 @@
  * 日付フォーマットの定数
  */
 export const DATE_FORMAT = {
-  TIME: { hour: '2-digit', minute: '2-digit', hour12: false } as const,
-  DATE: { year: 'numeric', month: '2-digit', day: '2-digit' } as const,
-  LOCALE: 'ja-JP'
+  TIME: { hour: "2-digit", minute: "2-digit", hour12: false } as const,
+  DATE: { year: "numeric", month: "2-digit", day: "2-digit" } as const,
+  LOCALE: "ja-JP",
 } as const;
 
 /**
  * 曜日の定数
  */
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
 /**
  * 日付を YYYY-MM-DD 形式の文字列に変換
  */
 export const formatDateToISOString = (date: Date): string => {
-  return date.toISOString().split('T')[0];
+  return date.toISOString().split("T")[0];
 };
 
 /**
@@ -31,12 +31,12 @@ export const formatDateToISOString = (date: Date): string => {
 export const formatTimeString = (date: Date): string => {
   try {
     if (!(date instanceof Date) || isNaN(date.getTime())) {
-      return '--:--';
+      return "--:--";
     }
     return date.toLocaleTimeString(DATE_FORMAT.LOCALE, DATE_FORMAT.TIME);
   } catch (e) {
-    console.error('時刻フォーマットエラー:', e);
-    return '--:--';
+    console.error("時刻フォーマットエラー:", e);
+    return "--:--";
   }
 };
 
@@ -52,8 +52,8 @@ export const formatDateJP = (date: Date): string => {
  * 例: 01/15（月）
  */
 export const formatDateWithWeekday = (date: Date): string => {
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
   const weekday = WEEKDAYS[date.getDay()];
   return `${month}/${day}（${weekday}）`;
 };
@@ -82,7 +82,11 @@ export const isSameDay = (date1: Date, date2: Date): boolean => {
 /**
  * 日付が指定された範囲内かどうかを判定
  */
-export const isDateInRange = (date: Date, startDate: Date, endDate: Date): boolean => {
+export const isDateInRange = (
+  date: Date,
+  startDate: Date,
+  endDate: Date,
+): boolean => {
   const targetTime = date.getTime();
   return targetTime >= startDate.getTime() && targetTime <= endDate.getTime();
-}; 
+};

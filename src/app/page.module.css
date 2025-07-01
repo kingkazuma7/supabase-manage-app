@@ -260,7 +260,9 @@ a.secondary {
   border-radius: 16px;
   width: 100%;
   max-width: 400px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .modalTitle {
@@ -366,7 +368,8 @@ a.secondary {
 }
 
 /* パスワード入力フィールド自体のスタイル */
-.passwordInputField { /* inputタグに適用する新しいクラス */
+.passwordInputField {
+  /* inputタグに適用する新しいクラス */
   width: 100%;
   padding: 0.75rem 1rem;
   padding-right: 3rem; /* アイコン分のスペースを確保 */
