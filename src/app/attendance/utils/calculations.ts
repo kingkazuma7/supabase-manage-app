@@ -46,13 +46,12 @@ const calculateBreakMinutes = (breakStart: string, breakEnd: string): number => 
   const end = new Date(breakEnd);
   
   const diffMilliseconds = end.getTime() - start.getTime();
-
-  // if (diffMilliseconds <= 0) return 0;
   
   if (diffMilliseconds <= 0 || diffMilliseconds < TIME.MILLISECONDS_IN_MINUTE) {
-    return 0;
+    return 0; // 休憩時間が0以下、または1分未満の場合は0分とする
   }
-
+  
+  // 1分以上ある場合は切り上げ
   return Math.ceil(diffMilliseconds / TIME.MILLISECONDS_IN_MINUTE);
 };
 
