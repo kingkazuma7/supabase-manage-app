@@ -561,3 +561,17 @@
   border-color: var(--primary);
   color: var(--primary);
 }
+
+.currentMonthHighlight {
+  font-weight: bold;
+  color: var(--color-primary-600); /* 例としてプライマリカラーを使用 */
+  background-color: var(--color-primary-50); /* 背景色を薄くする */
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.currentMonthLabel {
+  margin-left: 8px;
+  font-size: 0.8em;
+  color: var(--color-primary-500);
+}

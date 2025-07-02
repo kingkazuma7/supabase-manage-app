@@ -27,6 +27,7 @@ import { calculateWageForTimeRange } from "./utils/wageCalculator";
 import { formatDateWithWeekday, formatTimeString } from "./utils/dateUtils";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { FaCalendarAlt } from "react-icons/fa";
 
 function AttendanceContent() {
   const searchParams = useSearchParams();
@@ -54,6 +55,11 @@ function AttendanceContent() {
     handleBreak,
     fixData,
   } = useAttendance(staffId);
+
+  // 現在のシステム時刻の年と月を取得
+  const currentSystemDate = new Date();
+  const currentSystemYear = currentSystemDate.getFullYear();
+  const currentSystemMonth = currentSystemDate.getMonth(); // 0-11
 
   if (!staff) return <div className={styles.loading}>読み込み中...</div>;
 
@@ -122,8 +128,17 @@ function AttendanceContent() {
         >
           ←
         </button>
-        <span className={styles.currentMonth}>
+        <span className={`${styles.currentMonth} ${
+          viewYear === currentSystemYear && viewMonth === currentSystemMonth
+            ? `${styles.currentMonthHighlight} ${styles.currentMonthLarge}`
+            : ""
+        }`}>
           {viewYear}年{viewMonth + 1}月
+          {viewYear === currentSystemYear && viewMonth === currentSystemMonth && (
+            <span className={styles.currentMonthLabel}>
+              <FaCalendarAlt size={14} style={{ marginRight: '4px', verticalAlign: 'middle', color: '#3b82f6' }} />
+            </span>
+          )}
         </span>
         <button
           onClick={() => {
