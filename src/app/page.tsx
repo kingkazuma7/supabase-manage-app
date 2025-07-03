@@ -300,15 +300,6 @@ export default function Home() {
       <div className={styles.header}>
         <h1 className={styles.title}>スタッフ一覧</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          {staff.some(s => s.is_master) && (
-            <button
-              onClick={() => router.push('/master')}
-              className={styles.button}
-              aria-label="マスター管理"
-            >
-              🔑 マスター管理
-            </button>
-          )}
           <button
             onClick={() => setIsCreatingAccount(true)}
             className={styles.buttonSuccess}
