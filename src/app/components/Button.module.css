@@ -1,0 +1,124 @@
+.button {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* min-height: 80px; */
+  transition: transform 0.2s ease;
+  font-weight: 600;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.button:active {
+  transform: scale(0.98);
+}
+
+.button:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* サイズバリエーション */
+.small {
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  min-height: 48px;
+}
+
+.medium {
+  padding: 1.25rem 1.75rem;
+  font-size: 1.125rem;
+  min-height: 56px;
+}
+
+.large {
+  padding: 1.5rem 2.25rem;
+  font-size: 1.25rem;
+  min-height: 64px;
+}
+
+/* Primary Button */
+.primary {
+  background-color: #3b82f6;
+}
+
+.primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+/* Danger Button */
+.danger {
+  background-color: #ef4444;
+}
+
+.danger:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+/* Secondary Button */
+.secondary {
+  background-color: #22c55e;
+  color: white;
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: #16a34a;
+}
+
+/* Test Button */
+.test {
+  background-color: #6b7280;
+  color: white;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+}
+
+.test:hover:not(:disabled) {
+  background-color: #4b5563;
+}
+
+/* Media Queries */
+@media (hover: none) and (pointer: coarse) {
+  .small {
+    min-height: 40px;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .medium {
+    min-height: 48px;
+    padding: 1rem 1.5rem;
+  }
+
+  .large {
+    min-height: 56px;
+    padding: 1.25rem 2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .button {
+    font-size: 0.875rem;
+  }
+
+  .small {
+    min-height: 36px;
+    padding: 0.5rem 1rem;
+  }
+
+  .medium {
+    min-height: 44px;
+    padding: 0.75rem 1.25rem;
+  }
+
+  .large {
+    min-height: 52px;
+    padding: 1rem 1.75rem;
+  }
+} 

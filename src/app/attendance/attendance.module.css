@@ -223,40 +223,6 @@
   margin-top: 2rem;
 }
 
-.button {
-  padding: 1.5rem;
-  border-radius: 1rem;
-  border: none;
-  color: white;
-  cursor: pointer;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 80px;
-  transition: transform 0.2s ease;
-  font-weight: 600;
-}
-
-.button:active {
-  transform: scale(0.98);
-}
-
-.buttonPrimary {
-  composes: button;
-  background-color: #3b82f6;
-}
-
-.buttonDanger {
-  composes: button;
-  background-color: #ef4444;
-}
-
-.button:disabled {
-  background-color: #d1d5db;
-  cursor: not-allowed;
-}
-
 .error {
   background: var(--danger-alpha-100);
   color: var(--danger);
@@ -269,17 +235,6 @@
   font-size: 1.2rem;
 }
 
-.fixButton {
-  background: var(--danger);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  font-size: 1.2rem;
-  font-weight: 500;
-}
-
 .loading {
   display: flex;
   justify-content: center;
@@ -287,35 +242,6 @@
   min-height: 300px;
   color: var(--gray-alpha-700);
   font-size: 1.4rem;
-}
-
-.testButtons {
-  margin-top: 2rem;
-  padding: 2rem;
-  background-color: #f3f4f6;
-  border-radius: 1rem;
-  text-align: center;
-}
-
-.buttonTest {
-  background-color: #6b7280;
-  color: white;
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  margin: 0 1rem;
-  font-size: 1.2rem;
-  font-weight: 500;
-}
-
-.buttonTest:hover {
-  background-color: #4b5563;
-}
-
-.buttonTest:disabled {
-  background-color: #d1d5db;
-  cursor: not-allowed;
 }
 
 .testPatterns {
@@ -332,26 +258,6 @@
   margin: 0;
   font-size: 1.2rem;
   color: var(--text-primary);
-}
-
-.buttonTest {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--background-tertiary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  color: var(--text-primary);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.buttonTest:hover {
-  background: var(--background-hover);
-  transform: translateY(-2px);
 }
 
 .patternDescription {
@@ -387,11 +293,6 @@
     padding: 1rem;
   }
 
-  .button {
-    min-height: 64px;
-    font-size: 1.2rem;
-  }
-
   .actionButtons {
     gap: 1.5rem;
     padding: 1.5rem;
@@ -399,12 +300,6 @@
 
   .record {
     padding: 1.5rem;
-  }
-
-  .buttonTest {
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    margin: 0.5rem;
   }
 
   .status,
@@ -429,14 +324,6 @@
 }
 
 @media (hover: none) {
-  .buttonTest {
-    padding: 1.5rem;
-  }
-
-  .buttonTest:active {
-    background: var(--background-hover);
-    transform: translateY(-2px);
-  }
 }
 
 .monthlyTotal {
@@ -489,33 +376,6 @@
   background: var(--background-hover);
 }
 
-.buttonSecondary {
-  composes: button;
-  background-color: #b2f0c0;
-  color: #217a3b;
-  border: 1px solid #b2f0c0;
-  border-radius: 8px;
-  font-weight: bold;
-  transition:
-    background 0.2s,
-    color 0.2s,
-    box-shadow 0.2s;
-  cursor: pointer;
-}
-
-.buttonSecondary:hover,
-.buttonSecondary:focus {
-  background-color: #7be0a6;
-  color: #145a24;
-}
-
-.buttonSecondary:disabled {
-  background-color: #d1d5db;
-  color: #6b7280;
-  border-color: #d1d5db;
-  cursor: not-allowed;
-}
-
 .testSection {
   margin-top: 2rem;
   padding: 1rem;
@@ -546,28 +406,16 @@
   margin-top: 1rem;
 }
 
-.buttonTest {
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
-  background: var(--background-secondary);
-  border-radius: 0.5rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.buttonTest:hover {
-  background: var(--background-hover);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
 .currentMonthHighlight {
   font-weight: bold;
   color: var(--color-primary-600); /* 例としてプライマリカラーを使用 */
   background-color: var(--color-primary-50); /* 背景色を薄くする */
   padding: 4px 8px;
   border-radius: 4px;
+}
+
+.currentMonthLarge {
+  font-size: 1.2em; /* または任意の大きなサイズ */
 }
 
 .currentMonthLabel {

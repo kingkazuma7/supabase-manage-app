@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import styles from "./attendance.module.css";
 import Link from "next/link";
+import { Button } from "../components";
 import {
   insertAndValidateTestData,
   deleteTestData,
@@ -234,39 +235,45 @@ function AttendanceContent() {
       </div>
 
       <div className={styles.actionButtons}>
-        <button
+        <Button
           onClick={() => handleAttendance("出勤")}
           disabled={status.isWorking || isTodayCompleted}
-          className={styles.buttonPrimary}
+          variant="primary"
+          size="large"
         >
           出勤
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => handleAttendance("退勤")}
           disabled={!status.isWorking || status.isOnBreak}
-          className={styles.buttonDanger}
+          variant="danger"
+          size="large"
         >
           退勤
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => handleBreak("休憩開始")}
-          disabled={
-            !status.isWorking || status.isOnBreak || status.isBreakCompleted
-          }
-          className={styles.buttonSecondary}
+          disabled={!status.isWorking || status.isOnBreak || status.isBreakCompleted}
+          variant="secondary"
+          size="large"
         >
           休憩開始
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => handleBreak("休憩終了")}
           disabled={!status.isOnBreak}
-          className={styles.buttonSecondary}
+          variant="secondary"
+          size="large"
         >
           休憩終了
-        </button>
-        <button onClick={handleGoBack} className={styles.buttonSecondary}>
+        </Button>
+        <Button
+          onClick={handleGoBack}
+          variant="secondary"
+          size="large"
+        >
           ホームに戻る
-        </button>
+        </Button>
       </div>
 
       {process.env.NODE_ENV === "development" && (
@@ -275,88 +282,81 @@ function AttendanceContent() {
             <summary>テストデータ操作（開発環境のみ）</summary>
             <div className={styles.testActions}>
               <div className={styles.testButtons}>
-                <button
-                  onClick={() =>
-                    insertAndValidateTestData(staffId || "", "休憩付き通常勤務")
-                  }
-                  className={styles.buttonTest}
+                <Button
+                  onClick={() => insertAndValidateTestData(staffId || "", "休憩付き通常勤務")}
+                  variant="test"
                 >
                   通常勤務パターン
-                </button>
-                <button
-                  onClick={() =>
-                    insertAndValidateTestData(staffId || "", "夜勤休憩付き")
-                  }
-                  className={styles.buttonTest}
+                </Button>
+                <Button
+                  onClick={() => insertAndValidateTestData(staffId || "", "夜勤休憩付き")}
+                  variant="test"
                 >
                   夜勤パターン
-                </button>
-                <button
-                  onClick={() =>
-                    insertAndValidateTestData(staffId || "", "日付跨ぎ休憩付き")
-                  }
-                  className={styles.buttonTest}
+                </Button>
+                <Button
+                  onClick={() => insertAndValidateTestData(staffId || "", "日付跨ぎ休憩付き")}
+                  variant="test"
                 >
                   日付跨ぎパターン
-                </button>
-                <button
-                  onClick={() =>
-                    insertAndValidateTestData(staffId || "", "複数日")
-                  }
-                  className={styles.buttonTest}
+                </Button>
+                <Button
+                  onClick={() => insertAndValidateTestData(staffId || "", "複数日")}
+                  variant="test"
                 >
                   複数日データ
-                </button>
-                <button
-                  onClick={() =>
-                    insertAndValidateTestData(
-                      staffId || "",
-                      "3ヶ月分（跨ぎ含む）",
-                    )
-                  }
-                  className={styles.buttonTest}
+                </Button>
+                <Button
+                  onClick={() => insertAndValidateTestData(staffId || "", "3ヶ月分（跨ぎ含む）")}
+                  variant="test"
                 >
                   3ヶ月分データ
-                </button>
-                <button
+                </Button>
+                <Button
+                  onClick={() => insertAndValidateTestData(staffId || "", "3ヶ月分（跨ぎ含む）")}
+                  variant="test"
+                >
+                  3ヶ月分データ
+                </Button>
+                <Button
                   onClick={() =>
                     insertAndValidateTestData(staffId || "", "半年分データ")
                   }
-                  className={styles.buttonTest}
+                  variant="test"
                 >
                   過去6ヶ月（均等分散）データ
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() =>
                     insertAndValidateTestData(staffId || "", "2025年上半期")
                   }
-                  className={styles.buttonTest}
+                  variant="test"
                 >
                   2025年上半期データ
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() =>
                     insertAndValidateTestData(staffId || "", "1ヶ月分フルフル")
                   }
-                  className={styles.buttonTest}
+                  variant="test"
                 >
                   1ヶ月分フルデータ
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() =>
                     insertAndValidateTestData(staffId || "", "1年分データ")
                   }
-                  className={styles.buttonTest}
+                  variant="test"
                 >
                   1年分データ（月15日程度）
-                </button>
+                </Button>
+                <Button
+                  onClick={() => deleteTestData(staffId || "")}
+                  variant="test"
+                >
+                  全テストデータを削除
+                </Button>
               </div>
-              <button
-                onClick={() => deleteTestData(staffId || "")}
-                className={styles.buttonTest}
-              >
-                全テストデータを削除
-              </button>
             </div>
           </details>
         </div>
