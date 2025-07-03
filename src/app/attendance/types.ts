@@ -6,6 +6,8 @@ export type Staff = {
   id: string;
   /** スタッフ名 */
   name: string;
+  /** マスター */
+  is_master: boolean;
 };
 
 /**

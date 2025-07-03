@@ -17,6 +17,7 @@ type Staff = {
   id: string;
   name: string;
   email: string;
+  is_master: boolean;
 };
 
 /**
