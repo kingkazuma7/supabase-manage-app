@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "../utils/supabase/client";
 import { useRouter } from "next/navigation";
-import styles from "../page.module.css";
+import styles from "./master.module.css";
 
 /**
  * スタッフ情報の型定義（マスター権限を含む）
@@ -25,6 +25,10 @@ export default function MasterManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [processingStaffId, setProcessingStaffId] = useState<string | null>(null);
+  const [isEditingAccount, setIsEditingAccount] = useState(false);
+  const [selectedStaffForEdit, setSelectedStaffForEdit] = useState<Staff | null>(null);
+  const [editingStaffName, setEditingStaffName] = useState("");
+  const [editingStaffEmail, setEditingStaffEmail] = useState("");
   
   const router = useRouter();
 
@@ -112,6 +116,96 @@ export default function MasterManagementPage() {
     }
   };
 
+  const handleEditAccountClick = (staff: Staff) => {
+    setSelectedStaffForEdit(staff);
+    setEditingStaffName(staff.name);
+    setEditingStaffEmail(staff.email);
+    setIsEditingAccount(true);
+  };
+
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!selectedStaffForEdit) {
+      setError("編集対象のスタッフが選択されていません");
+      return;
+    }
+
+    if (!editingStaffName || !editingStaffEmail) {
+      setError("名前とメールアドレスが必要です");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/update-account", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: selectedStaffForEdit.id,
+          name: editingStaffName,
+          email: editingStaffEmail,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "アカウントの更新に失敗しました");
+      }
+
+      setSuccessMessage("アカウントの更新に成功しました");
+
+      const supabase = createClient();
+      const { data } = await supabase.from("staff").select("*");
+      setStaff(data || []);
+
+      setTimeout(() => {
+        setIsEditingAccount(false);
+        setSelectedStaffForEdit(null);
+        setSuccessMessage(null);
+      }, 2000);
+    } catch (error) {
+      setError((error as Error).message || "アカウントの更新に失敗しました");
+    }
+  };
+
+  const handleDeleteAccount = async (staffId: string) => {
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!confirm("本当にこのアカウントを削除しますか？")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/auth/delete-account?staffId=${staffId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("アカウントの削除に失敗しました");
+      }
+
+      const supabase = createClient();
+      const { data } = await supabase.from("staff").select("*");
+      setStaff(data || []);
+      setSuccessMessage("アカウントの削除に成功しました");
+
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 2000);
+    } catch (error) {
+      setError("アカウントの削除に失敗しました");
+    }
+  };
+
   /**
    * ホームページに戻る
    */
@@ -130,96 +224,100 @@ export default function MasterManagementPage() {
   }
 
   return (
-    <main className={styles.container}>
+    <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>マスター権限管理</h1>
-        <button
-          onClick={handleGoBack}
-          className={styles.button}
-          aria-label="ホームに戻る"
-        >
-          ← ホームに戻る
+        <button onClick={handleGoBack} className={styles.backButton}>
+          ← 戻る
         </button>
+        <h1 className={styles.title}>マスター管理</h1>
       </div>
 
+      {successMessage && (
+        <div className={styles.success} role="alert">
+          {successMessage}
+        </div>
+      )}
       {error && (
         <div className={styles.error} role="alert">
           {error}
         </div>
       )}
 
-      {successMessage && (
-        <div style={{ 
-          padding: '1rem', 
-          backgroundColor: '#d4edda', 
-          color: '#155724', 
-          border: '1px solid #c3e6cb', 
-          borderRadius: '4px',
-          marginBottom: '1rem'
-        }}>
-          {successMessage}
-        </div>
-      )}
-
       <div className={styles.staffList}>
-        <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>
-          スタッフ一覧 ({staff.length}名)
-        </h2>
-        
-        {staff.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-            スタッフが登録されていません
-          </div>
-        ) : (
-          staff.map((person) => (
-            <div key={person.id} className={styles.staffItem}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                  👤 {person.name}
-                </div>
-                <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.2rem' }}>
-                  {person.email}
-                </div>
-                <div style={{ fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                  状態: {person.is_master ? (
-                    <span style={{ color: '#d63384', fontWeight: 'bold' }}>
-                      🔥 マスター権限あり
-                    </span>
-                  ) : (
-                    <span style={{ color: '#6c757d' }}>
-                      一般スタッフ
-                    </span>
-                  )}
-                </div>
-              </div>
-              
+        {staff.map((person) => (
+          <div key={person.id} className={styles.staffItem}>
+            <div className={styles.staffInfo}>
+              <span className={styles.staffName}>👤 {person.name}</span>
+              <span className={styles.staffEmail}>{person.email}</span>
+              <span className={styles.masterBadge}>
+                {person.is_master ? "🔑 マスター" : "一般"}
+              </span>
+            </div>
+            <div className={styles.staffActions}>
               <button
-                onClick={() => toggleMasterPermission(person.id, person.is_master || false)}
-                className={person.is_master ? styles.buttonDanger : styles.buttonSuccess}
-                disabled={processingStaffId === person.id}
-                aria-label={`${person.name}のマスター権限を${person.is_master ? '取り消し' : '付与'}する`}
+                onClick={() => handleEditAccountClick(person)}
+                className={styles.button}
+                aria-label={`${person.name}を編集`}
               >
-                {processingStaffId === person.id ? (
-                  "処理中..."
-                ) : person.is_master ? (
-                  "🔥 権限取り消し"
-                ) : (
-                  "⭐ 権限付与"
-                )}
+                ✎ 編集
+              </button>
+              <button
+                onClick={() => handleDeleteAccount(person.id)}
+                className={styles.buttonDanger}
+                aria-label={`${person.name}を削除`}
+              >
+                🗑️ 削除
               </button>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
 
-      <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-        <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>📋 マスター権限について</h3>
-        <ul style={{ marginBottom: '0', paddingLeft: '1.5rem' }}>
-          <li>マスター権限を持つスタッフは、他のスタッフのアカウント編集・削除が可能です</li>
-          <li>権限の付与・取り消しは慎重に行ってください</li>
-          <li>現在、{staff.filter(s => s.is_master).length}名がマスター権限を持っています</li>
-        </ul>
-      </div>
-    </main>
+      {isEditingAccount && selectedStaffForEdit && (
+        <div className={styles.modal} role="dialog" aria-modal="true">
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>アカウント編集</h2>
+            <form onSubmit={handleUpdateAccount} className={styles.form}>
+              <div className={styles.inputGroup}>
+                <label htmlFor="editStaffName">名前:</label>
+                <input
+                  id="editStaffName"
+                  type="text"
+                  value={editingStaffName}
+                  onChange={(e) => setEditingStaffName(e.target.value)}
+                  className={styles.input}
+                  placeholder="スタッフ名"
+                  required
+                />
+              </div>
+              <div className={styles.inputGroup}>
+                <label htmlFor="editStaffEmail">メールアドレス:</label>
+                <input
+                  id="editStaffEmail"
+                  type="email"
+                  value={editingStaffEmail}
+                  onChange={(e) => setEditingStaffEmail(e.target.value)}
+                  className={styles.input}
+                  placeholder="メールアドレス"
+                  required
+                />
+              </div>
+              <div className={styles.buttonGroup}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingAccount(false)}
+                  className={styles.button}
+                >
+                  キャンセル
+                </button>
+                <button type="submit" className={styles.buttonPrimary}>
+                  更新
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

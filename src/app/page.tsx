@@ -319,20 +319,6 @@ export default function Home() {
             >
               👤 {person.name}
             </button>
-            <button
-              onClick={() => handleEditAccountClick(person)}
-              className={styles.button}
-              aria-label={`${person.name}を編集`}
-            >
-              編集
-            </button>
-            <button
-              onClick={() => handleDeleteAccount(person.id)}
-              className={styles.buttonDanger}
-              aria-label={`${person.name}を削除`}
-            >
-              🗑️ 削除
-            </button>
           </div>
         ))}
       </div>
