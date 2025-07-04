@@ -12,7 +12,10 @@
   transition: transform 0.2s ease;
   font-weight: 600;
   white-space: nowrap;
-  width: 100%;
+  
+  &.fullWidth {
+    width: 100%;
+  }
 }
 
 .button:active {

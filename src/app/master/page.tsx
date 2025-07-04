@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "../utils/supabase/client";
 import { useRouter } from "next/navigation";
 import styles from "./master.module.css";
+import Button from "../components/Button";
 
 /**
  * スタッフ情報の型定義（マスター権限を含む）
@@ -298,13 +299,13 @@ export default function MasterManagementPage() {
           ← 戻る
         </button>
         <h1 className={styles.title}>マスター管理</h1>
-        <button
+        <Button
           onClick={() => setIsCreatingAccount(true)}
-          className={styles.buttonSuccess}
+          variant="primary"
           aria-label="アカウント作成"
         >
           ＋ アカウント作成
-        </button>
+        </Button>
       </div>
 
       {successMessage && (
