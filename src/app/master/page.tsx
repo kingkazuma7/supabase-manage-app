@@ -295,14 +295,15 @@ export default function MasterManagementPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <button onClick={handleGoBack} className={styles.backButton}>
+        <Button onClick={handleGoBack} variant="tertiary" aria-label="戻る">
           ← 戻る
-        </button>
+        </Button>
         <h1 className={styles.title}>マスター管理</h1>
         <Button
           onClick={() => setIsCreatingAccount(true)}
           variant="primary"
           aria-label="アカウント作成"
+          className={styles.alignRight}
         >
           ＋ アカウント作成
         </Button>

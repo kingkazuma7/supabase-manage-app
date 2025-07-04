@@ -11,23 +11,13 @@
   gap: 1rem;
 }
 
+.alignRight {
+  margin-left: auto;
+}
+
 .title {
   font-size: 1.8rem;
   margin: 0;
-}
-
-.backButton {
-  padding: 0.5rem 1rem;
-  background-color: #f3f4f6;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background-color 0.2s;
-}
-
-.backButton:hover {
-  background-color: #e5e7eb;
 }
 
 .staffList {
