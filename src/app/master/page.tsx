@@ -330,20 +330,20 @@ export default function MasterManagementPage() {
               </span>
             </div>
             <div className={styles.staffActions}>
-              <button
+              <Button
                 onClick={() => handleEditAccountClick(person)}
-                className={styles.button}
+                variant="secondary"
                 aria-label={`${person.name}を編集`}
               >
                 ✎ 編集
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleDeleteAccount(person.id)}
-                className={styles.buttonDanger}
+                variant="danger"
                 aria-label={`${person.name}を削除`}
               >
                 🗑️ 削除
-              </button>
+              </Button>
             </div>
           </div>
         ))}
@@ -379,16 +379,17 @@ export default function MasterManagementPage() {
                 />
               </div>
               <div className={styles.buttonGroup}>
-                <button
+                <Button
                   type="button"
                   onClick={() => setIsEditingAccount(false)}
-                  className={styles.button}
+                  variant="tertiary"
+                  aria-label="キャンセル"
                 >
                   キャンセル
-                </button>
-                <button type="submit" className={styles.buttonPrimary}>
+                </Button>
+                <Button type="submit" variant="primary" aria-label="更新">
                   更新
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -442,21 +443,21 @@ export default function MasterManagementPage() {
                 </div>
               )}
               <div className={styles.buttonGroup}>
-                <button
+                <Button
                   type="button"
                   onClick={() => setIsCreatingAccount(false)}
-                  className={styles.button}
+                  variant="tertiary"
                   aria-label="キャンセル"
                 >
                   ✕ キャンセル
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className={styles.buttonSuccess}
+                  variant="primary"
                   aria-label="アカウント作成"
                 >
                   ✓ 作成
-                </button>
+                </Button>
               </div>
             </form>
           </div>

@@ -67,12 +67,22 @@
 
 /* Secondary Button */
 .secondary {
-  background-color: #22c55e;
+  background-color: #4A6D8C;
   color: white;
 }
 
 .secondary:hover:not(:disabled) {
-  background-color: #16a34a;
+  background-color: #3B5870;
+}
+
+/* tertiary Button */
+.tertiary {
+  background-color: #f3f4f6;
+  color: #333;
+}
+
+.tertiary:hover:not(:disabled) {
+  background-color: #e5e7eb;
 }
 
 /* Test Button */

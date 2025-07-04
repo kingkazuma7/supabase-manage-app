@@ -2,7 +2,7 @@ import React, { ButtonHTMLAttributes } from 'react';
 import styles from './Button.module.css';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'danger' | 'secondary' | 'test';
+  variant?: 'primary' | 'danger' | 'secondary' | 'tertiary' | 'test';
   size?: 'small' | 'medium' | 'large';
 }
 
