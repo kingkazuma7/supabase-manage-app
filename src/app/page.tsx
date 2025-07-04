@@ -30,10 +30,6 @@ export default function Home() {
   const [password, setPassword] = useState(""); // パスワードを状態に保存
   const [error, setError] = useState<string | null>(null); // エラーメッセージを状態に保存
   const [loading, setLoading] = useState(true); // 読み込み中のフラグ
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false); // アカウント作成モーダルの表示/非表示
-  const [newStaffName, setNewStaffName] = useState(""); // 新規アカウントの名前
-  const [newStaffEmail, setNewStaffEmail] = useState(""); // 新規アカウントのメールアドレス
-  const [newStaffPassword, setNewStaffPassword] = useState(""); // 新規アカウントのパスワード
   const [showPassword, setShowPassword] = useState(false); // パスワード表示/非表示の状態
   const [successMessage, setSuccessMessage] = useState<string | null>(null); // 成功メッセージを状態に保存
   const [isEditingAccount, setIsEditingAccount] = useState(false); // 編集モーダルの表示/非表示
@@ -191,70 +187,6 @@ export default function Home() {
   };
 
   /**
-   * 新規アカウント作成の処理
-   * @async
-   * @param {React.FormEvent} e - フォームイベント
-   * @returns {Promise<void>}
-   */
-  const handleCreateAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // エラーメッセージをクリア
-    setError(null);
-    // 成功メッセージをクリア
-    setSuccessMessage(null);
-
-    if (!newStaffName || !newStaffEmail || !newStaffPassword) {
-      setError("名前、メールアドレス、パスワードが必要です");
-      return;
-    }
-
-    if (!newStaffEmail.includes("@") || !newStaffEmail.includes(".")) {
-      setError("有効なメールアドレスを入力してください。");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/auth/create-account", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: newStaffName,
-          email: newStaffEmail,
-          password: newStaffPassword,
-        }),
-      });
-
-      // エラー処理
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(errorData.message || "アカウントの作成に失敗しました"); // エラーメッセージをAPIから取得
-      }
-
-      // 成功メッセージ
-      setSuccessMessage("アカウントの作成に成功しました");
-
-      // アカウント作成成功後、スタッフ一覧を更新
-      const supabase = createClient();
-      const { data } = await supabase.from("staff").select("*");
-      setStaff(data || []);
-      setNewStaffName("");
-      setNewStaffEmail("");
-      setNewStaffPassword("");
-
-      setTimeout(() => {
-        setIsCreatingAccount(false); // 3秒後モーダル閉じる
-        setSuccessMessage(null); // 3秒後成功メッセージをクリア
-      }, 2000);
-    } catch (error: unknown) {
-      setError((error as Error).message || "アカウントの作成に失敗しました");
-    }
-  };
-
-  /**
    * アカウント削除の処理
    * @async
    * @param {string} staffId - 削除対象のスタッフID
@@ -299,15 +231,6 @@ export default function Home() {
     <main className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>スタッフ一覧</h1>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button
-            onClick={() => setIsCreatingAccount(true)}
-            className={styles.buttonSuccess}
-            aria-label="アカウント作成"
-          >
-            ＋ アカウント作成
-          </button>
-        </div>
       </div>
       <div className={styles.staffList}>
         {staff.map((person) => (
@@ -376,74 +299,6 @@ export default function Home() {
                   aria-label="ログイン"
                 >
                   ログイン
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* アカウント作成モーダル */}
-      {isCreatingAccount && (
-        <div className={styles.modal} role="dialog" aria-modal="true">
-          <div className={styles.modalContent}>
-            <h2 className={styles.modalTitle}>アカウント作成</h2>
-            <form onSubmit={handleCreateAccount} className={styles.form}>
-              <input
-                type="text"
-                value={newStaffName}
-                onChange={(e) => setNewStaffName(e.target.value)}
-                className={styles.input}
-                placeholder="名前"
-                required
-                autoComplete="name"
-                aria-label="名前"
-              />
-              <input
-                id="newStaffEmail"
-                type="email"
-                value={newStaffEmail}
-                onChange={(e) => setNewStaffEmail(e.target.value)}
-                className={styles.input}
-                placeholder="メールアドレス"
-                required
-                aria-label="メールアドレス"
-              />
-              <input
-                type="password"
-                value={newStaffPassword}
-                onChange={(e) => setNewStaffPassword(e.target.value)}
-                className={styles.input}
-                placeholder="パスワード"
-                required
-                autoComplete="new-password"
-                aria-label="パスワード"
-              />
-              {successMessage && (
-                <div className={styles.success} role="alert">
-                  {successMessage}
-                </div>
-              )}
-              {error && (
-                <div className={styles.error} role="alert">
-                  {error}
-                </div>
-              )}
-              <div className={styles.buttonGroup}>
-                <button
-                  type="button"
-                  onClick={() => setIsCreatingAccount(false)}
-                  className={styles.button}
-                  aria-label="キャンセル"
-                >
-                  ✕ キャンセル
-                </button>
-                <button
-                  type="submit"
-                  className={styles.buttonSuccess}
-                  aria-label="アカウント作成"
-                >
-                  ✓ 作成
                 </button>
               </div>
             </form>

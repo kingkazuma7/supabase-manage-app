@@ -29,6 +29,10 @@ export default function MasterManagementPage() {
   const [selectedStaffForEdit, setSelectedStaffForEdit] = useState<Staff | null>(null);
   const [editingStaffName, setEditingStaffName] = useState("");
   const [editingStaffEmail, setEditingStaffEmail] = useState("");
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [newStaffName, setNewStaffName] = useState("");
+  const [newStaffEmail, setNewStaffEmail] = useState("");
+  const [newStaffPassword, setNewStaffPassword] = useState("");
   
   const router = useRouter();
 
@@ -207,6 +211,70 @@ export default function MasterManagementPage() {
   };
 
   /**
+   * 新規アカウント作成の処理
+   * @async
+   * @param {React.FormEvent} e - フォームイベント
+   * @returns {Promise<void>}
+   */
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // エラーメッセージをクリア
+    setError(null);
+    // 成功メッセージをクリア
+    setSuccessMessage(null);
+
+    if (!newStaffName || !newStaffEmail || !newStaffPassword) {
+      setError("名前、メールアドレス、パスワードが必要です");
+      return;
+    }
+
+    if (!newStaffEmail.includes("@") || !newStaffEmail.includes(".")) {
+      setError("有効なメールアドレスを入力してください。");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/create-account", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newStaffName,
+          email: newStaffEmail,
+          password: newStaffPassword,
+        }),
+      });
+
+      // エラー処理
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || "アカウントの作成に失敗しました"); // エラーメッセージをAPIから取得
+      }
+
+      // 成功メッセージ
+      setSuccessMessage("アカウントの作成に成功しました");
+
+      // アカウント作成成功後、スタッフ一覧を更新
+      const supabase = createClient();
+      const { data } = await supabase.from("staff").select("*");
+      setStaff(data || []);
+      setNewStaffName("");
+      setNewStaffEmail("");
+      setNewStaffPassword("");
+
+      setTimeout(() => {
+        setIsCreatingAccount(false); // 3秒後モーダル閉じる
+        setSuccessMessage(null); // 3秒後成功メッセージをクリア
+      }, 2000);
+    } catch (error: unknown) {
+      setError((error as Error).message || "アカウントの作成に失敗しました");
+    }
+  };
+
+  /**
    * ホームページに戻る
    */
   const handleGoBack = () => {
@@ -230,6 +298,13 @@ export default function MasterManagementPage() {
           ← 戻る
         </button>
         <h1 className={styles.title}>マスター管理</h1>
+        <button
+          onClick={() => setIsCreatingAccount(true)}
+          className={styles.buttonSuccess}
+          aria-label="アカウント作成"
+        >
+          ＋ アカウント作成
+        </button>
       </div>
 
       {successMessage && (
@@ -312,6 +387,74 @@ export default function MasterManagementPage() {
                 </button>
                 <button type="submit" className={styles.buttonPrimary}>
                   更新
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* アカウント作成モーダル */}
+      {isCreatingAccount && (
+        <div className={styles.modal} role="dialog" aria-modal="true">
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>アカウント作成</h2>
+            <form onSubmit={handleCreateAccount} className={styles.form}>
+              <input
+                type="text"
+                value={newStaffName}
+                onChange={(e) => setNewStaffName(e.target.value)}
+                className={styles.input}
+                placeholder="名前"
+                required
+                autoComplete="name"
+                aria-label="名前"
+              />
+              <input
+                id="newStaffEmail"
+                type="email"
+                value={newStaffEmail}
+                onChange={(e) => setNewStaffEmail(e.target.value)}
+                className={styles.input}
+                placeholder="メールアドレス"
+                required
+                aria-label="メールアドレス"
+              />
+              <input
+                type="password"
+                value={newStaffPassword}
+                onChange={(e) => setNewStaffPassword(e.target.value)}
+                className={styles.input}
+                placeholder="パスワード"
+                required
+                autoComplete="new-password"
+                aria-label="パスワード"
+              />
+              {successMessage && (
+                <div className={styles.success} role="alert">
+                  {successMessage}
+                </div>
+              )}
+              {error && (
+                <div className={styles.error} role="alert">
+                  {error}
+                </div>
+              )}
+              <div className={styles.buttonGroup}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingAccount(false)}
+                  className={styles.button}
+                  aria-label="キャンセル"
+                >
+                  ✕ キャンセル
+                </button>
+                <button
+                  type="submit"
+                  className={styles.buttonSuccess}
+                  aria-label="アカウント作成"
+                >
+                  ✓ 作成
                 </button>
               </div>
             </form>
