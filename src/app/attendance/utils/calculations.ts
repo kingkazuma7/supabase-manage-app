@@ -138,35 +138,46 @@ export const validateRecords = (
   }
 
   // 2. 記録を時間順にソートする
-  // Dateオブジェクトに変換して、出勤時刻で昇順ソートします
-  const sortedRecords = [...records].sort((a, b) => {
-    return new Date(a.clock_in).getTime() - new Date(b.clock_in).getTime();
-  });
+  const sortedRecords = [...records].sort(
+    (a, b) => new Date(a.clock_in).getTime() - new Date(b.clock_in).getTime(),
+  );
 
-  // 3. 各記録の重複や連続性のチェック
-  // ソートされた記録を前から順に見て、前の記録との関係をチェックします
   for (let i = 1; i < sortedRecords.length; i++) {
-    const prevRecord = sortedRecords[i - 1]; // 前の記録
-    const currentRecord = sortedRecords[i]; // 現在の記録
+    const prevRecord = sortedRecords[i - 1];
+    const currentRecord = sortedRecords[i];
 
-    // 前の記録が退勤済みでない場合（まだ勤務中の場合）、次の出勤打刻は不正
-    // 例: 9時出勤 -> 退勤なし -> 10時出勤 のような場合
-    if (prevRecord.clock_out === null) {
-      return false;
+    // --- 重複レコード判定 --------------------------
+    const isDuplicate =
+      prevRecord.clock_in === currentRecord.clock_in &&
+      prevRecord.clock_out === currentRecord.clock_out;
+    if (isDuplicate) {
+      // 完全に同一のレコードは無視（DB 取り込み時の重複など）
+      continue;
     }
+    // ----------------------------------------------
 
-    // 前の記録の退勤時刻と現在の記録の出勤時刻を比較
-    const prevClockOutTime = new Date(prevRecord.clock_out).getTime();
-    const currentClockInTime = new Date(currentRecord.clock_in).getTime();
+    // 前の記録が未退勤の場合は不正
+    if (prevRecord.clock_out === null) return false;
 
-    // 現在の出勤時刻が、前の記録の退勤時刻と「同じかそれより前」の場合、不正とみなす
-    // テストケースの意図（18:00退勤 -> 18:00出勤が不正）に合致させるため <= を使用します
-    if (currentClockInTime <= prevClockOutTime) {
-      return false;
+    const prevClockOut = new Date(prevRecord.clock_out!);
+    const currentClockIn = new Date(currentRecord.clock_in);
+
+    // 同日の場合は1分以上の間隔が必要
+    const isSameDay =
+      prevClockOut.toDateString() === currentClockIn.toDateString();
+
+    const diffMinutes =
+      (currentClockIn.getTime() - prevClockOut.getTime()) /
+      TIME.MILLISECONDS_IN_MINUTE;
+
+    if (isSameDay) {
+      if (diffMinutes < 1) return false;
+    } else {
+      // 異日でも退勤より前の時刻は不正
+      if (currentClockIn.getTime() <= prevClockOut.getTime()) return false;
     }
   }
 
-  // 全てのチェックを通過したら、整合性が取れていると判断
   return true;
 };
 

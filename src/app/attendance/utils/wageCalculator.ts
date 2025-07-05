@@ -31,24 +31,19 @@ const getNextRateChangeTime = (currentTime: Date): Date => {
   const hour = currentTime.getHours();
   const nextTime = new Date(currentTime);
 
-  switch (true) {
-    // 22:00前の場合、次は22:00
-    case hour < 22:
-      nextTime.setHours(22, 0, 0, 0);
-      break;
-    // 22:00-23:59の場合、次は0:00（翌日）
-    case hour >= 22:
-      nextTime.setDate(nextTime.getDate() + 1);
-      nextTime.setHours(0, 0, 0, 0);
-      break;
-    // 0:00-2:59の場合、次は3:00
-    case hour >= 0 && hour < 3:
-      nextTime.setHours(3, 0, 0, 0);
-      break;
-    default:
-      // 次の時間の開始時刻
-      nextTime.setHours(hour + 1, 0, 0, 0);
+  if (hour >= 22) {
+    debugger;
+    // 22:00 以降は翌日の 0:00
+    nextTime.setDate(nextTime.getDate() + 1);
+    nextTime.setHours(0, 0, 0, 0);
+  } else if (hour >= 0 && hour < 3) {
+    // 深夜帯（0:00-3:00）は 3:00
+    nextTime.setHours(3, 0, 0, 0);
+  } else {
+    // その他の時間帯は 22:00
+    nextTime.setHours(22, 0, 0, 0);
   }
+
   return nextTime;
 };
 
