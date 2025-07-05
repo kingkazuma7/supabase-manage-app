@@ -32,7 +32,6 @@ const getNextRateChangeTime = (currentTime: Date): Date => {
   const nextTime = new Date(currentTime);
 
   if (hour >= 22) {
-    debugger;
     // 22:00 以降は翌日の 0:00
     nextTime.setDate(nextTime.getDate() + 1);
     nextTime.setHours(0, 0, 0, 0);
