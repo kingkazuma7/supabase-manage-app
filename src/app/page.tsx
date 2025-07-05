@@ -5,6 +5,7 @@ import { createClient } from "./utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import styles from "./page.module.css";
+import Button from "./components/Button";
 
 /**
  * スタッフ情報の型定義
@@ -235,13 +236,14 @@ export default function Home() {
       <div className={styles.staffList}>
         {staff.map((person) => (
           <div key={person.id} className={styles.staffItem}>
-            <button
+            <Button
               onClick={() => handleStaffClick(person)}
-              className={styles.buttonPrimary}
+              variant="primary"
               aria-label={`${person.name}を選択`}
+              fullWidth={true}
             >
               👤 {person.name}
-            </button>
+            </Button>
           </div>
         ))}
       </div>
@@ -285,21 +287,21 @@ export default function Home() {
                 </div>
               )}
               <div className={styles.buttonGroup}>
-                <button
+                <Button
                   type="button"
                   onClick={() => setSelectedStaff(null)}
-                  className={styles.button}
+                  variant="tertiary"
                   aria-label="キャンセル"
                 >
                   ✕ キャンセル
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className={styles.buttonPrimary}
+                  variant="primary"
                   aria-label="ログイン"
                 >
                   ログイン
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -348,25 +350,25 @@ export default function Home() {
                 </div>
               )}
               <div className={styles.buttonGroup}>
-                <button
+                <Button
                   type="button"
                   onClick={() => {
                     setIsEditingAccount(false); // モーダルを閉じる
                     setSelectedStaffForEdit(null); // 選択をクリア
                     setError(null); // エラーメッセージをクリア
                   }}
-                  className={styles.button}
+                  variant="tertiary"
                   aria-label="キャンセル"
                 >
                   ✕ キャンセル
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className={styles.buttonPrimary}
+                  variant="primary"
                   aria-label="更新"
                 >
                   更新
-                </button>
+                </Button>
               </div>
             </form>
           </div>

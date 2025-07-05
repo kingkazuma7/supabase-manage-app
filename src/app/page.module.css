@@ -207,10 +207,6 @@ a.secondary {
   transition: transform 0.2s ease;
 }
 
-.staffItem:active {
-  transform: scale(0.98);
-}
-
 .button {
   padding: 1rem 1.5rem;
   border-radius: 12px;
