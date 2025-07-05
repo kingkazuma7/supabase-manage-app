@@ -207,6 +207,48 @@ a.secondary {
   transition: transform 0.2s ease;
 }
 
+.buttonContent {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.masterBadge {
+  padding: 0.25rem 0.75rem;
+  background-color: var(--primary-alpha-100);
+  color: var(--primary);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.masterButton {
+  background: linear-gradient(45deg, var(--primary) 0%, var(--primary-dark) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.masterButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.masterButton:hover::before {
+  opacity: 1;
+}
+
 .button {
   padding: 1rem 1.5rem;
   border-radius: 12px;

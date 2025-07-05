@@ -321,29 +321,44 @@ export default function MasterManagementPage() {
       )}
 
       <div className={styles.staffList}>
-        {staff.map((person) => (
-          <div key={person.id} className={styles.staffItem}>
+        {staff.map((s) => (
+          <div key={s.id} className={styles.staffItem}>
             <div className={styles.staffInfo}>
-              <span className={styles.staffName}>👤 {person.name}</span>
-              <span className={styles.staffEmail}>{person.email}</span>
-              <span className={styles.masterBadge}>
-                {person.is_master ? "🔑 マスター" : "一般"}
-              </span>
+              <span className={styles.staffName}>👤 {s.name}</span>
+              <span className={styles.staffEmail}>{s.email}</span>
+              {s.is_master && (
+                <span className={styles.masterBadge}>🔑 マスター</span>
+              )}
             </div>
             <div className={styles.staffActions}>
+              {s.is_master && (
+                <span className={styles.masterBadge}>マスター</span>
+              )}
               <Button
-                onClick={() => handleEditAccountClick(person)}
                 variant="secondary"
-                aria-label={`${person.name}を編集`}
+                size="small"
+                onClick={() => handleEditAccountClick(s)}
               >
-                ✎ 編集
+                編集
               </Button>
               <Button
-                onClick={() => handleDeleteAccount(person.id)}
                 variant="danger"
-                aria-label={`${person.name}を削除`}
+                size="small"
+                onClick={() => handleDeleteAccount(s.id)}
               >
-                🗑️ 削除
+                削除
+              </Button>
+              <Button
+                variant={s.is_master ? "danger" : "primary"}
+                size="small"
+                onClick={() => toggleMasterPermission(s.id, !!s.is_master)}
+                disabled={processingStaffId === s.id}
+              >
+                {processingStaffId === s.id ? (
+                  "処理中..."
+                ) : (
+                  s.is_master ? "権限解除" : "権限付与"
+                )}
               </Button>
             </div>
           </div>

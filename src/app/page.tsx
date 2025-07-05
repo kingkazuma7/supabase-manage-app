@@ -241,8 +241,16 @@ export default function Home() {
               variant="primary"
               aria-label={`${person.name}を選択`}
               fullWidth={true}
+              className={person.is_master ? styles.masterButton : ''}
             >
-              👤 {person.name}
+              <span className={styles.buttonContent}>
+                <span>👤 {person.name}</span>
+                {person.is_master && (
+                  <span className={styles.masterBadge}>
+                    🔑 マスター
+                  </span>
+                )}
+              </span>
             </Button>
           </div>
         ))}
