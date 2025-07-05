@@ -26,6 +26,7 @@ import {
 } from "./utils/calculations";
 import { calculateWageForTimeRange } from "./utils/wageCalculator";
 import { formatDateWithWeekday, formatTimeString } from "./utils/dateUtils";
+import { generateTextContent } from "./utils/exportToText";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaCalendarAlt } from "react-icons/fa";
@@ -176,6 +177,31 @@ function AttendanceContent() {
             ¥{monthlyWageTotal.toLocaleString()}
           </span>
         </div>
+        <Button
+          onClick={() => {
+            const content = generateTextContent({
+              staff,
+              records: filteredRecords,
+              year: viewYear,
+              month: viewMonth + 1,
+            });
+            
+            const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `勤怠記録_${staff.name}_${viewYear}年${viewMonth + 1}月.txt`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          }}
+          variant="secondary"
+          size="small"
+          className={styles.exportButton}
+        >
+          <span>📄 テキストエクスポート</span>
+        </Button>
       </div>
 
       <div className={styles.records}>
