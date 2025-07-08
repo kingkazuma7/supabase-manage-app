@@ -1,12 +1,12 @@
 "use client";
 
 import { createClient } from "../utils/supabase/client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import styles from "../page.module.css";
 
-function SetPasswordForm() {
+export default function SetPassword() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
@@ -151,21 +151,5 @@ function SetPasswordForm() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function SetPassword() {
-  return (
-    <Suspense fallback={
-      <div className={styles.container}>
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <h2 className={styles.modalTitle}>読み込み中...</h2>
-          </div>
-        </div>
-      </div>
-    }>
-      <SetPasswordForm />
-    </Suspense>
   );
 } 
