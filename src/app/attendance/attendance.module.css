@@ -32,12 +32,10 @@
 }
 
 .status {
-  background: var(--background);
-  padding: 2rem;
-  border-radius: 1rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .status h2 {
@@ -48,23 +46,15 @@
 }
 
 .working {
-  color: var(--success);
+  color: #4caf50;
   font-weight: 600;
-  font-size: 1.8rem;
-  padding: 1rem 2rem;
-  background: var(--success-alpha-100);
-  border-radius: 0.75rem;
-  display: inline-block;
+  font-size: 1rem;
 }
 
 .notWorking {
-  color: var(--gray-alpha-700);
+  color: #757575;
   font-weight: 600;
-  font-size: 1.8rem;
-  padding: 1rem 2rem;
-  background: var(--gray-alpha-100);
-  border-radius: 0.75rem;
-  display: inline-block;
+  font-size: 1rem;
 }
 
 .workTime {

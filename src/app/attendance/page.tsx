@@ -110,9 +110,9 @@ function AttendanceContent() {
       <div className={styles.header}>
         <h1>{staff.name}さんの勤怠記録</h1>
         <div className={styles.status}>
-          {status.isWorking && (
-            <span className={styles.working}>{status.message}</span>
-          )}
+          <span className={status.isWorking ? styles.working : styles.notWorking}>
+            {status.message || "未出勤"}
+          </span>
         </div>
       </div>
       {staff.is_master && (
