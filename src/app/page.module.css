@@ -303,17 +303,21 @@ a.secondary {
     0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
+/* モーダルのタイトルスタイル */
 .modalTitle {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.25rem;
+  font-weight: 600;
   margin-bottom: 1.5rem;
   text-align: center;
+  color: var(--foreground);
 }
 
+/* フォームのスタイル */
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
+  width: 100%;
 }
 
 .input {
@@ -332,13 +336,16 @@ a.secondary {
   border-color: #3b82f6;
 }
 
+/* エラーメッセージのスタイル */
 .error {
-  color: #ef4444;
-  font-size: 0.9rem;
+  background-color: #f44336;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
   text-align: center;
-  padding: 0.5rem;
-  background-color: rgba(239, 68, 68, 0.1);
-  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .buttonGroup {
@@ -437,4 +444,48 @@ a.secondary {
 
 .togglePassword:hover {
   opacity: 0.8; /* ホバー時の視覚フィードバック */
+}
+
+/* パスワードリセットリンクのコンテナ */
+.forgotPassword {
+  text-align: center;
+  margin: 0.5rem 0;
+  width: 100%;
+}
+
+/* パスワードリセットリンクのスタイル */
+.resetPasswordLink {
+  background: none;
+  border: none;
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  transition: all 0.2s ease;
+  width: auto;
+  display: inline-block;
+}
+
+.resetPasswordLink:hover {
+  opacity: 0.7;
+  text-decoration: none;
+}
+
+.resetPasswordLink:focus {
+  outline: 2px solid #0066cc;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 成功メッセージのスタイル */
+.success {
+  background-color: #4caf50;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }

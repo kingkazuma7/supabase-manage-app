@@ -224,6 +224,45 @@ export default function Home() {
     }
   };
 
+  /**
+   * パスワードリセットの処理
+   * @async
+   * @param {string} staffId - リセット対象のスタッフID
+   * @returns {Promise<void>}
+   */
+  const handleResetPassword = async (staffId: string) => {
+    // 確認ダイアログを表示
+    if (!confirm("パスワードをリセットしますか？\nリセット後のパスワードは 'password123' になります。\nリセット後のパスワードの変更はマスター会員に依頼してください。")) {
+      return;
+    }
+
+    // エラーメッセージをクリア
+    setError(null);
+    // 成功メッセージをクリア
+    setSuccessMessage(null);
+
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          staffId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("パスワードのリセットに失敗しました");
+      }
+
+      setSuccessMessage("パスワードがリセットされました。新しいパスワードは 'password123' です。");
+      setPassword(""); // パスワード入力をクリア
+    } catch (error) {
+      setError("パスワードのリセットに失敗しました");
+    }
+  };
+
   if (loading) {
     return <div className={styles.container}>読み込み中...</div>;
   }
@@ -260,9 +299,7 @@ export default function Home() {
       {selectedStaff && (
         <div className={styles.modal} role="dialog" aria-modal="true">
           <div className={styles.modalContent}>
-            <h2 className={styles.modalTitle}>
-              {selectedStaff.name}さんのパスワードを入力
-            </h2>
+            <h2 className={styles.modalTitle}>{selectedStaff.name}さんのパスワードを入力</h2>
             <form onSubmit={handlePasswordSubmit} className={styles.form}>
               <div className={styles.passwordInputContainer}>
                 <input
@@ -275,29 +312,43 @@ export default function Home() {
                   autoComplete="current-password"
                   aria-label="パスワード"
                 />
-                <span
-                  className={styles.togglePassword}
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={
-                    showPassword
-                      ? "パスワードを非表示にする"
-                      : "パスワードを表示する"
-                  }
-                  role="button"
-                  tabIndex={0}
+                  className={styles.togglePassword}
+                  aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
+                </button>
               </div>
+              {successMessage && (
+                <div className={styles.success} role="alert">
+                  {successMessage}
+                </div>
+              )}
               {error && (
                 <div className={styles.error} role="alert">
                   {error}
                 </div>
               )}
+              <div className={styles.forgotPassword}>
+                <button
+                  type="button"
+                  onClick={() => handleResetPassword(selectedStaff.id)}
+                  className={styles.resetPasswordLink}
+                >
+                  パスワードを忘れた場合はこちら
+                </button>
+              </div>
               <div className={styles.buttonGroup}>
                 <Button
                   type="button"
-                  onClick={() => setSelectedStaff(null)}
+                  onClick={() => {
+                    setSelectedStaff(null);
+                    setError(null);
+                    setSuccessMessage(null);
+                    setPassword("");
+                  }}
                   variant="tertiary"
                   aria-label="キャンセル"
                 >
