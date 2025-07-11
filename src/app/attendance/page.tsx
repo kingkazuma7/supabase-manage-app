@@ -113,17 +113,15 @@ function AttendanceContent() {
           {status.isWorking && (
             <span className={styles.working}>{status.message}</span>
           )}
-          {staff.is_master && (
-            <button
-              onClick={() => router.push('/master')}
-              className={styles.masterButton}
-              aria-label="マスター管理"
-            >
-              🔑 マスター管理
-            </button>
-          )}
         </div>
       </div>
+      {staff.is_master && (
+        <div className={styles.masterLink}>
+          <Link href="/master" className={styles.textLink}>
+            🔑 マスター管理ページへ
+          </Link>
+        </div>
+      )}
 
       <div className={styles.monthSelector}>
         <button
