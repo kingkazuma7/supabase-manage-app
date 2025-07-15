@@ -29,10 +29,9 @@ export default function Home() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null); // 選択されたスタッフを状態に保存
   const [password, setPassword] = useState(""); // パスワードを状態に保存
-  const [error, setError] = useState<string | null>(null); // エラーメッセージを状態に保存
+  const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null); // エラーメッセージを状態に保存
   const [loading, setLoading] = useState(true); // 読み込み中のフラグ
   const [showPassword, setShowPassword] = useState(false); // パスワード表示/非表示の状態
-  const [successMessage, setSuccessMessage] = useState<string | null>(null); // 成功メッセージを状態に保存
   const [isEditingAccount, setIsEditingAccount] = useState(false); // 編集モーダルの表示/非表示
   const [selectedStaffForEdit, setSelectedStaffForEdit] =
     useState<Staff | null>(null); // 編集対象のスタッフ
@@ -71,7 +70,7 @@ export default function Home() {
   const handleStaffClick = (staff: Staff) => {
     setSelectedStaff(staff); // 選択されたスタッフを状態に保存
     setPassword(""); // パスワードをクリア
-    setError(null); // エラーメッセージをクリア
+    setMessage(null); // エラーメッセージをクリア
   };
 
   /**
@@ -95,10 +94,7 @@ export default function Home() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // エラーメッセージをクリア
-    setError(null);
-    // 成功メッセージをクリア
-    setSuccessMessage(null);
+    setMessage(null);
 
     if (!selectedStaff) return;
 
@@ -122,7 +118,7 @@ export default function Home() {
       // 認証成功時に出退勤ページへ遷移
       router.push(`/attendance?staffId=${selectedStaff.id}`);
     } catch (error) {
-      setError("パスワードが正しくありません");
+      setMessage({ type: 'error', text: "パスワードが正しくありません" });
     }
   };
 
@@ -135,18 +131,15 @@ export default function Home() {
   const handleUpdateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // エラーメッセージをクリア
-    setError(null);
-    // 成功メッセージをクリア
-    setSuccessMessage(null);
+    setMessage(null);
 
     if (!selectedStaffForEdit) {
-      setError("編集対象のスタッフが選択されていません");
+      setMessage({ type: 'error', text: "編集対象のスタッフが選択されていません" });
       return;
     }
 
     if (!editingStaffName || !editingStaffEmail) {
-      setError("名前とメールアドレスが必要です");
+      setMessage({ type: 'error', text: "名前とメールアドレスが必要です" });
       return;
     }
 
@@ -170,7 +163,7 @@ export default function Home() {
       }
 
       // 成功メッセージ
-      setSuccessMessage("アカウントの更新に成功しました");
+      setMessage({ type: 'success', text: "アカウントの更新に成功しました" });
 
       // スタッフ一覧を更新
       const supabase = createClient();
@@ -180,10 +173,10 @@ export default function Home() {
       setTimeout(() => {
         setIsEditingAccount(false); // 編集モーダルを閉じる
         setSelectedStaffForEdit(null); // 編集対象のスタッフをクリア
-        setSuccessMessage(null); // 成功メッセージをクリア
+        setMessage(null); // 成功メッセージをクリア
       }, 2000);
     } catch (error) {
-      setError((error as Error).message || "アカウントの更新に失敗しました");
+      setMessage({ type: 'error', text: (error as Error).message || "アカウントの更新に失敗しました" });
     }
   };
 
@@ -195,9 +188,9 @@ export default function Home() {
    */
   const handleDeleteAccount = async (staffId: string) => {
     // エラーメッセージをクリア
-    setError(null);
+    setMessage(null);
     // 成功メッセージをクリア
-    setSuccessMessage(null);
+    setMessage(null);
 
     if (!confirm("本当にこのアカウントを削除しますか？")) {
       return;
@@ -220,7 +213,7 @@ export default function Home() {
       const { data } = await supabase.from("staff").select("*");
       setStaff(data || []);
     } catch (error) {
-      setError("アカウントの削除に失敗しました");
+      setMessage({ type: 'error', text: "アカウントの削除に失敗しました" });
     }
   };
 
@@ -237,9 +230,9 @@ export default function Home() {
     }
 
     // エラーメッセージをクリア
-    setError(null);
+    setMessage(null);
     // 成功メッセージをクリア
-    setSuccessMessage(null);
+    setMessage(null);
 
     try {
       const response = await fetch("/api/auth/reset-password", {
@@ -256,10 +249,10 @@ export default function Home() {
         throw new Error("パスワードのリセットに失敗しました");
       }
 
-      setSuccessMessage("パスワードがリセットされました。新しいパスワードは 'password123' です。");
+      setMessage({ type: 'success', text: "パスワードがリセットされました。新しいパスワードは 'password123' です。" });
       setPassword(""); // パスワード入力をクリア
     } catch (error) {
-      setError("パスワードのリセットに失敗しました");
+      setMessage({ type: 'error', text: "パスワードのリセットに失敗しました" });
     }
   };
 
@@ -321,14 +314,12 @@ export default function Home() {
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
-              {successMessage && (
-                <div className={styles.success} role="alert">
-                  {successMessage}
-                </div>
-              )}
-              {error && (
-                <div className={styles.error} role="alert">
-                  {error}
+              {message && (
+                <div 
+                  className={message.type === 'error' ? styles.error : styles.success} 
+                  role="alert"
+                >
+                  {message.text}
                 </div>
               )}
               <div className={styles.forgotPassword}>
@@ -345,8 +336,7 @@ export default function Home() {
                   type="button"
                   onClick={() => {
                     setSelectedStaff(null);
-                    setError(null);
-                    setSuccessMessage(null);
+                    setMessage(null);
                     setPassword("");
                   }}
                   variant="tertiary"
@@ -398,14 +388,12 @@ export default function Home() {
                   aria-label="メールアドレス"
                 />
               </div>
-              {successMessage && (
-                <div className={styles.success} role="alert">
-                  {successMessage}
-                </div>
-              )}
-              {error /* エラー表示も既存のロジックを参考に含める */ && (
-                <div className={styles.error} role="alert">
-                  {error}
+              {message && (
+                <div 
+                  className={message.type === 'error' ? styles.error : styles.success} 
+                  role="alert"
+                >
+                  {message.text}
                 </div>
               )}
               <div className={styles.buttonGroup}>
@@ -414,7 +402,7 @@ export default function Home() {
                   onClick={() => {
                     setIsEditingAccount(false); // モーダルを閉じる
                     setSelectedStaffForEdit(null); // 選択をクリア
-                    setError(null); // エラーメッセージをクリア
+                    setMessage(null); // エラーメッセージをクリア
                   }}
                   variant="tertiary"
                   aria-label="キャンセル"

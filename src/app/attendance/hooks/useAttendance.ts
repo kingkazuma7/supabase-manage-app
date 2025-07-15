@@ -59,7 +59,6 @@ export const useAttendance = (staffId: string | null) => {
     isBreakCompleted: false,
   });
   const [error, setError] = useState<string | null>(null);
-  const [isTodayCompleted, setIsTodayCompleted] = useState(false);
   const [monthlyTotal, setMonthlyTotal] = useState<MonthlyTotal | null>(null);
   const now = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -199,7 +198,6 @@ export const useAttendance = (staffId: string | null) => {
               todayIso &&
             record.clock_out,
         );
-        setIsTodayCompleted(todayCompleted);
 
         // 月次合計時間の計算
         const monthlyTotal = calculateMonthlyTotal(attendanceData);
@@ -587,7 +585,6 @@ export const useAttendance = (staffId: string | null) => {
     workTime,
     status,
     error,
-    isTodayCompleted,
     monthlyTotal,
     viewYear,
     viewMonth,

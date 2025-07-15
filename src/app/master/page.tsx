@@ -22,10 +22,13 @@ type Staff = {
  */
 export default function MasterManagementPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingState, setLoadingState] = useState<{
+    type: 'page' | 'staff' | null;
+    staffId?: string;
+    loading: boolean;
+  }>({ type: 'page', loading: true });
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [processingStaffId, setProcessingStaffId] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
   const [isEditingAccount, setIsEditingAccount] = useState(false);
   const [selectedStaffForEdit, setSelectedStaffForEdit] = useState<Staff | null>(null);
   const [editingStaffName, setEditingStaffName] = useState("");
@@ -56,9 +59,9 @@ export default function MasterManagementPage() {
         setStaff(data || []);
       } catch (err) {
         console.error("Error fetching staff:", err);
-        setError("スタッフ情報の取得に失敗しました");
+        setMessage({ type: 'error', text: "スタッフ情報の取得に失敗しました" });
       } finally {
-        setLoading(false);
+        setLoadingState({ type: null, loading: false });
       }
     };
 
@@ -83,9 +86,8 @@ export default function MasterManagementPage() {
       return;
     }
 
-    setProcessingStaffId(staffId);
-    setError(null);
-    setSuccessMessage(null);
+    setLoadingState({ type: 'staff', staffId, loading: true });
+    setMessage(null);
 
     try {
       const supabase = createClient();
@@ -106,18 +108,18 @@ export default function MasterManagementPage() {
       );
 
       const action = newStatus ? "付与" : "取り消し";
-      setSuccessMessage(`${staffMember.name}さんのマスター権限を${action}しました`);
+      setMessage({ type: 'success', text: `${staffMember.name}さんのマスター権限を${action}しました` });
       
       // 3秒後にメッセージを消去
       setTimeout(() => {
-        setSuccessMessage(null);
+        setMessage(null);
       }, 3000);
 
     } catch (err) {
       console.error("Error updating master permission:", err);
-      setError("マスター権限の更新に失敗しました");
+      setMessage({ type: 'error', text: "マスター権限の更新に失敗しました" });
     } finally {
-      setProcessingStaffId(null);
+      setLoadingState({ type: null, loading: false });
     }
   };
 
@@ -130,17 +132,15 @@ export default function MasterManagementPage() {
 
   const handleUpdateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    setError(null);
-    setSuccessMessage(null);
+    setMessage(null);
 
     if (!selectedStaffForEdit) {
-      setError("編集対象のスタッフが選択されていません");
+      setMessage({ type: 'error', text: "編集対象のスタッフが選択されていません" });
       return;
     }
 
     if (!editingStaffName || !editingStaffEmail) {
-      setError("名前とメールアドレスが必要です");
+      setMessage({ type: 'error', text: "名前とメールアドレスが必要です" });
       return;
     }
 
@@ -162,8 +162,9 @@ export default function MasterManagementPage() {
         throw new Error(errorData.message || "アカウントの更新に失敗しました");
       }
 
-      setSuccessMessage("アカウントの更新に成功しました");
+      setMessage({ type: 'success', text: "アカウントの更新に成功しました" });
 
+      // スタッフ一覧を更新
       const supabase = createClient();
       const { data } = await supabase.from("staff").select("*");
       setStaff(data || []);
@@ -171,43 +172,45 @@ export default function MasterManagementPage() {
       setTimeout(() => {
         setIsEditingAccount(false);
         setSelectedStaffForEdit(null);
-        setSuccessMessage(null);
+        setMessage(null);
       }, 2000);
     } catch (error) {
-      setError((error as Error).message || "アカウントの更新に失敗しました");
+      setMessage({ type: 'error', text: (error as Error).message || "アカウントの更新に失敗しました" });
     }
   };
 
   const handleDeleteAccount = async (staffId: string) => {
-    setError(null);
-    setSuccessMessage(null);
+    setMessage(null);
 
     if (!confirm("本当にこのアカウントを削除しますか？")) {
       return;
     }
 
     try {
-      const response = await fetch(
-        `/api/auth/delete-account?staffId=${staffId}`,
-        {
-          method: "DELETE",
+      const response = await fetch("/api/auth/delete-account", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ staffId }),
+      });
 
       if (!response.ok) {
         throw new Error("アカウントの削除に失敗しました");
       }
 
+      setMessage({ type: 'success', text: "アカウントが削除されました" });
+
+      // スタッフ一覧を更新
       const supabase = createClient();
       const { data } = await supabase.from("staff").select("*");
       setStaff(data || []);
-      setSuccessMessage("アカウントの削除に成功しました");
 
       setTimeout(() => {
-        setSuccessMessage(null);
+        setMessage(null);
       }, 2000);
     } catch (error) {
-      setError("アカウントの削除に失敗しました");
+      setMessage({ type: 'error', text: "アカウントの削除に失敗しました" });
     }
   };
 
@@ -219,19 +222,15 @@ export default function MasterManagementPage() {
    */
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // エラーメッセージをクリア
-    setError(null);
-    // 成功メッセージをクリア
-    setSuccessMessage(null);
+    setMessage(null);
 
     if (!newStaffName || !newStaffEmail || !newStaffPassword) {
-      setError("名前、メールアドレス、パスワードが必要です");
+      setMessage({ type: 'error', text: "すべての項目を入力してください" });
       return;
     }
 
     if (!newStaffEmail.includes("@") || !newStaffEmail.includes(".")) {
-      setError("有効なメールアドレスを入力してください。");
+      setMessage({ type: 'error', text: "有効なメールアドレスを入力してください。" });
       return;
     }
 
@@ -256,7 +255,7 @@ export default function MasterManagementPage() {
       }
 
       // 成功メッセージ
-      setSuccessMessage("アカウントの作成に成功しました");
+      setMessage({ type: 'success', text: "アカウントが作成されました" });
 
       // アカウント作成成功後、スタッフ一覧を更新
       const supabase = createClient();
@@ -268,10 +267,10 @@ export default function MasterManagementPage() {
 
       setTimeout(() => {
         setIsCreatingAccount(false); // 3秒後モーダル閉じる
-        setSuccessMessage(null); // 3秒後成功メッセージをクリア
+        setMessage(null); // 3秒後成功メッセージをクリア
       }, 2000);
     } catch (error: unknown) {
-      setError((error as Error).message || "アカウントの作成に失敗しました");
+      setMessage({ type: 'error', text: (error as Error).message || "アカウントの作成に失敗しました" });
     }
   };
 
@@ -282,7 +281,7 @@ export default function MasterManagementPage() {
     router.push("/");
   };
 
-  if (loading) {
+  if (loadingState.type === 'page' && loadingState.loading) {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
@@ -309,14 +308,9 @@ export default function MasterManagementPage() {
         </Button>
       </div>
 
-      {successMessage && (
-        <div className={styles.success} role="alert">
-          {successMessage}
-        </div>
-      )}
-      {error && (
-        <div className={styles.error} role="alert">
-          {error}
+      {message && (
+        <div className={`${styles.message} ${message.type === 'success' ? styles.success : styles.error}`} role="alert">
+          {message.text}
         </div>
       )}
 
@@ -352,9 +346,9 @@ export default function MasterManagementPage() {
                 variant={s.is_master ? "danger" : "primary"}
                 size="small"
                 onClick={() => toggleMasterPermission(s.id, !!s.is_master)}
-                disabled={processingStaffId === s.id}
+                disabled={loadingState.type === 'staff' && loadingState.staffId === s.id}
               >
-                {processingStaffId === s.id ? (
+                {loadingState.type === 'staff' && loadingState.staffId === s.id ? (
                   "処理中..."
                 ) : (
                   s.is_master ? "権限解除" : "権限付与"
@@ -448,14 +442,9 @@ export default function MasterManagementPage() {
                 autoComplete="new-password"
                 aria-label="パスワード"
               />
-              {successMessage && (
-                <div className={styles.success} role="alert">
-                  {successMessage}
-                </div>
-              )}
-              {error && (
-                <div className={styles.error} role="alert">
-                  {error}
+              {message && (
+                <div className={`${styles.message} ${message.type === 'success' ? styles.success : styles.error}`} role="alert">
+                  {message.text}
                 </div>
               )}
               <div className={styles.buttonGroup}>
