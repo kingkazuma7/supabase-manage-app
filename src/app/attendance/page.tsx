@@ -116,7 +116,7 @@ function AttendanceContent() {
       </div>
       {staff.is_master && (
         <div className={styles.masterLink}>
-          <Link href="/master" className={styles.textLink}>
+          <Link href="/master" className={`${styles.textLink} ${styles.blueLink}`}>
             🔑 マスター管理ページへ
           </Link>
         </div>

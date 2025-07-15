@@ -434,3 +434,23 @@
 .masterButton:hover {
   background-color: #2d3748;
 }
+
+.masterLink {
+  margin-top: 1rem;
+  font-size: 1.1rem;
+}
+
+.textLink {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.textLink:hover {
+  text-decoration: underline;
+  color: var(--link-hover-color);
+}
+
+.blueLink {
+  color: var(--blue-link-color, #007bff); /* Default blue color */
+}
