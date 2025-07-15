@@ -343,25 +343,33 @@
 }
 
 .currentMonth {
-  font-size: 1.2rem;
+  font-size: 1.8rem; /* Larger font for current month */
   font-weight: 600;
   margin: 0 1rem;
+  color: var(--foreground);
 }
 
 .monthSelector {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 1rem 0;
+  margin: 1.5rem 0;
+  gap: 1rem;
 }
 
 .monthButton {
-  padding: 0.5rem 1rem;
+  padding: 0.8rem 1.5rem;
   border: 1px solid var(--border-color);
   background: var(--background-secondary);
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 1.5rem; /* Larger font for arrow */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px; /* Minimum touch target size */
+  min-height: 44px; /* Minimum touch target size */
 }
 
 .monthButton:hover {
@@ -406,9 +414,6 @@
   border-radius: 4px;
 }
 
-.currentMonthLarge {
-  font-size: 1.2em; /* または任意の大きなサイズ */
-}
 
 .currentMonthLabel {
   margin-left: 8px;
