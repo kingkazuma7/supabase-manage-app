@@ -63,6 +63,14 @@
   align-items: center;
 }
 
+@media (max-width: 768px) {
+  .staffActions {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end; /* 右寄せに調整 */
+  }
+}
+
 .masterBadge {
   padding: 0.25rem 0.75rem;
   background-color: var(--primary-alpha-100);
