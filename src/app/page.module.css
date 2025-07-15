@@ -287,6 +287,13 @@ a.secondary {
     0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
+@media (min-width: 768px) {
+  .modalContent {
+    max-width: 500px; /* iPadなどのタブレットで少し広くする */
+    padding: 2.5rem; /* パディングを少し増やす */
+  }
+}
+
 /* モーダルのタイトルスタイル */
 .modalTitle {
   font-size: 1.25rem;
