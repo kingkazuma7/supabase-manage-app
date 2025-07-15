@@ -9,7 +9,6 @@ import {
 } from "../types";
 import {
   calculateWorkTime,
-  calculateWorkTimeForPeriod,
   getMinutesFromHHMM,
   validateRecords,
   calculateActualWorkTime,
