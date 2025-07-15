@@ -46,7 +46,6 @@ function AttendanceContent() {
     workTime,
     status,
     error,
-    isTodayCompleted,
     monthlyTotal: monthlyTotalFromHook,
     viewYear,
     viewMonth,
@@ -108,11 +107,13 @@ function AttendanceContent() {
 
       <div className={styles.header}>
         <h1>{staff.name}さんの勤怠記録</h1>
-        <div className={styles.status}>
-          <span className={status.isWorking ? styles.working : styles.notWorking}>
-            {status.message || "未出勤"}
-          </span>
-        </div>
+        {viewYear === currentSystemYear && viewMonth === currentSystemMonth && (
+          <div className={styles.status}>
+            <span className={status.isWorking ? styles.working : styles.notWorking}>
+              {status.message || "未出勤"}
+            </span>
+          </div>
+        )}
       </div>
       {staff.is_master && (
         <div className={styles.masterLink}>
@@ -269,7 +270,7 @@ function AttendanceContent() {
       <div className={styles.actionButtons}>
         <Button
           onClick={() => handleAttendance("出勤")}
-          disabled={status.isWorking || isTodayCompleted}
+          disabled={status.isWorking}
           variant="primary"
           size="large"
         >
