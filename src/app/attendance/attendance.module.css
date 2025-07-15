@@ -6,8 +6,9 @@
 
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
+  flex-direction: column;
   margin-bottom: 2rem;
   padding: 1rem;
   background: var(--background);
@@ -16,7 +17,7 @@
 }
 
 .header h1 {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 600;
   color: var(--foreground);
 }
@@ -29,13 +30,6 @@
   background: var(--primary-alpha-100);
   font-size: 1.1rem;
   font-weight: 500;
-}
-
-.status {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-left: auto;
 }
 
 .status h2 {
