@@ -29,7 +29,6 @@ import { formatDateWithWeekday, formatTimeString } from "./utils/dateUtils";
 import { generateTextContent } from "./utils/exportToText";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaCalendarAlt } from "react-icons/fa";
 
 function AttendanceContent() {
   const searchParams = useSearchParams();
@@ -145,7 +144,7 @@ function AttendanceContent() {
           {viewYear}年{viewMonth + 1}月
           {viewYear === currentSystemYear && viewMonth === currentSystemMonth && (
             <span className={styles.currentMonthLabel}>
-              <FaCalendarAlt size={14} style={{ marginRight: '4px', verticalAlign: 'middle', color: '#3b82f6' }} />
+              (当月)
             </span>
           )}
         </span>
